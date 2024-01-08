@@ -32,11 +32,12 @@ data/*
 /.obsidian
 .obsidian/
 
+# .rmd files (as opposed to .md for github markdown)
+*.rmd
+
 # Configuration files
 /config
 
 # Testing files
 tests/
 
-# .RProj files
-*.Rproj
