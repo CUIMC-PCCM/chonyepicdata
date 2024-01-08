@@ -21,7 +21,17 @@ Cols specifications are things like col_integer(), col_character(), and can be f
 \item{max_load}{A number, the maximum number of rows to load. The default is infinity.}
 }
 \value{
-A data frame with reformatted and cleaned encounter-level information, including MRN, enc_id (encounter ID), dob (date of birth), and hospital admission and discharge dates and datetimes
+A data frame with reformatted and cleaned encounter-level information:
+\itemize{
+    \item \code{MRN}: Medical record number
+    \item \code{enc_id}: Encounter ID
+    \item \code{dob}: Date of birth
+    \item \code{hospital_admission_date}: Hospital admission date
+    \item \code{hospital_admission_datetime}: Hospital admission datetime
+    \item \code{hospital_discharge_date}: Hospital discharge date
+    \item \code{hospital_discharge_datetime}: Hospital discharge datetime
+    \item \code{hosp_interval}: Interval from encounter start to end
+    }
 }
 \description{
 Load inpatient hospital encounters from a .txt file from Epic-era data.
