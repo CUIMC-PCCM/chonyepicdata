@@ -1,22 +1,27 @@
 #' load_icd_dx
 #'
-#' After loading encounter data with function load_encounters(), use this function
-#' to find all ICD diagnosis codes associated with each of these patients. ICD codes will be
-#' loaded from many different sources, and across time. Because of this, also create
-#' a column specifying whether the ICD diagnosis originated before, during, or after the
-#' hospital encounter.
+#' Use this function to load a set of ICD10 diagnosis codes. ICD codes will be
+#' loaded from many different sources, and across time. Outside of this function they can be joined to
+#' particular patients or encounters.
 #'
-#' @param df_encounters A data frame consisting of MRNs, admission dates "hospital_admission"date, discharge dates "hospital_discharge date"
 #' @param icd_dx_filepath Path to the ICD diagnosis code file.
 #' @param coltypes_icd A list of cols() specifications.
 #'   Cols specifications are things like col_integer(), col_character(), and can be found within the 'readr' package documentation.
 #' @param max_load A number, the maximum number of rows to load. The default is infinity.
 #'
-#' @return A data frame with MRN, encounter ID, ICD10 code and description, dates of code entry, whether the diagnosis was primary (Y/N), and whether the diagnosis was made before, during, or the hospital encounter.
+#' @return A data frame with:
+#' \itemize{
+#'   \item \code{mrn}: Medical record number
+#'   \item \code{enc_id}: Encounter ID, renamed from PAT_ENC_CSN_ID
+#'   \item \code{icd10_code}: Numeric ICD10 code with the format XXXXXXX (the period character is removed)
+#'   \item \code{dx_name}: Description of the ICD10 diagnosis
+#'   \item \code{dx_date}: Date the diagnosis was placed
+#'   \item \code{primary_dx_yn}: Is this a primary diagnosis (Y/N)? (Usually the one listed first)
+#'   \item \code{dx_type}: Where did the diagnosis come from? (Billing records, problem list, etc)
+#' }
 #'
 #' @export
-load_icd_dx <- function(df_encounters,
-                        icd_dx_filepath,
+load_icd_dx <- function(icd_dx_filepath,
                             coltypes_icd = list(
                                  col_character(),     # MRN
                                  col_character(),     # PAT_ENC_CSN_ID
@@ -63,12 +68,5 @@ load_icd_dx <- function(df_encounters,
           separate_rows(icd10_code, sep = ',') %>%
           mutate(icd10_code = str_trim(icd10_code))
 
-     # Make add columns stating whether a diagnosis was made before, during, or after the hospital interval
-     df_icd <- df_icd %>% inner_join(hospital_intervals) %>%
-          mutate(dx_post_hosp = if_else(dx_date > int_end(hosp_interval), TRUE, FALSE),
-                 dx_in_hosp = if_else(dx_date %within% hosp_interval, TRUE, FALSE),
-                 dx_pre_hosp = if_else(dx_date < int_start(hosp_interval), TRUE, FALSE))
-
      return(df_icd)
-
 }

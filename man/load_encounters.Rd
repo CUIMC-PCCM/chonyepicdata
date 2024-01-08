@@ -7,8 +7,7 @@
 load_encounters(
   encounter_filepath,
   coltypes_enc = list(col_character(), col_character(), col_skip(), col_datetime(),
-    col_character(), col_double(), col_skip(), col_skip(), col_datetime(),
-    col_datetime()),
+    col_character(), col_skip(), col_skip(), col_skip(), col_datetime(), col_datetime()),
   max_load = Inf
 )
 }
@@ -26,16 +25,12 @@ A data frame with reformatted and cleaned encounter-level information:
     \item \code{MRN}: Medical record number
     \item \code{enc_id}: Encounter ID
     \item \code{dob}: Date of birth
-    \item \code{hospital_admission_date}: Hospital admission date
-    \item \code{hospital_admission_datetime}: Hospital admission datetime
-    \item \code{hospital_discharge_date}: Hospital discharge date
-    \item \code{hospital_discharge_datetime}: Hospital discharge datetime
-    \item \code{hosp_interval}: Interval from encounter start to end
+    \item \code{hospital_admission_date}: Hospital admission datetime
+    \item \code{hospital_discharge_date}: Hospital discharge datetime
     }
 }
 \description{
 Load inpatient hospital encounters from a .txt file from Epic-era data.
 The text file should be pipe-delimited (delimter is '|' without the quotes).
-This just contains basic demographic information lke dates os hospitalization,
-age, and linking information to be used with other relational tables.
+This just contains basic demographic information to be used with other relational tables.
 }

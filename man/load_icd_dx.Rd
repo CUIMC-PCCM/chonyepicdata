@@ -5,7 +5,6 @@
 \title{load_icd_dx}
 \usage{
 load_icd_dx(
-  df_encounters,
   icd_dx_filepath,
   coltypes_icd = list(col_character(), col_character(), col_character(), col_character(),
     col_datetime(), col_character(), col_factor()),
@@ -13,8 +12,6 @@ load_icd_dx(
 )
 }
 \arguments{
-\item{df_encounters}{A data frame consisting of MRNs, admission dates "hospital_admission"date, discharge dates "hospital_discharge date"}
-
 \item{icd_dx_filepath}{Path to the ICD diagnosis code file.}
 
 \item{coltypes_icd}{A list of cols() specifications.
@@ -23,12 +20,19 @@ Cols specifications are things like col_integer(), col_character(), and can be f
 \item{max_load}{A number, the maximum number of rows to load. The default is infinity.}
 }
 \value{
-A data frame with MRN, encounter ID, ICD10 code and description, dates of code entry, whether the diagnosis was primary (Y/N), and whether the diagnosis was made before, during, or the hospital encounter.
+A data frame with:
+\itemize{
+  \item \code{mrn}: Medical record number
+  \item \code{enc_id}: Encounter ID, renamed from PAT_ENC_CSN_ID
+  \item \code{icd10_code}: Numeric ICD10 code with the format XXX.XXXX
+  \item \code{dx_name}: Description of the ICD10 diagnosis
+  \item \code{dx_date}: Date the diagnosis was placed
+  \item \code{primary_dx_yn}: Is this a primary diagnosis (Y/N)? (Usually the one listed first)
+  \item \code{dx_type}: Where did the diagnosis come from? (Billing records, problem list, etc)
+}
 }
 \description{
-After loading encounter data with function load_encounters(), use this function
-to find all ICD diagnosis codes associated with each of these patients. ICD codes will be
-loaded from many different sources, and across time. Because of this, also create
-a column specifying whether the ICD diagnosis originated before, during, or after the
-hospital encounter.
+Use this function to load a set of ICD10 diagnosis codes. ICD codes will be
+loaded from many different sources, and across time. Outside of this function they can be joined to
+particular patients or encounters.
 }
