@@ -12,7 +12,7 @@
 #'   \item \code{mrn}: Medical record number
 #'   \item \code{enc_id}: Encounter ID, renamed from PAT_ENC_CSN_ID
 #'   \item \code{icu_start_date}: Datetime for the start of each ICU stay
-#'   \item \code{icu_stop_date  me}: Datetime for the stop of each ICU stay
+#'   \item \code{icu_stop_date}: Datetime for the stop of each ICU stay
 #' }
 #'
 #' @export
@@ -99,7 +99,7 @@ get_picu_intervals <- function(adt_filepath,
           # Convert all characters to lowercase
           mutate(across(where(is.character), str_to_lower)) %>%
 
-          # Convert event typess into a meaningful factor variable
+          # Convert event types into a meaningful factor variable
           mutate(
                # Convert a few variable types...
                event_type = case_when(event_type == 'admission' ~ 'admit',
