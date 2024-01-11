@@ -25,7 +25,9 @@ get_picu_intervals <- function(adt_filepath,
                                     col_datetime(),         # effective_time
                                     col_skip(),             # department_id
                                     col_character(),        # department_name
-                                    col_skip()             # pat_class
+                                    col_skip(),             # pat_class
+                                    col_skip(),             # bed_label
+                                    col_skip()              # patient_service
                                ),
                                max_load = Inf)
 {

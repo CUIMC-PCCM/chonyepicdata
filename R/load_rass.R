@@ -5,32 +5,33 @@
 #' (CAPD) scores. These are just filtered out. No processing is done
 #' other than cleaning the dataset.
 #'
+#' @md
 #' @param rass_filepath Path to the RASS data
 #' @param rass_colpaths A list of cols() specifications.
-#'   Cols specifications are things like col_integer(), col_character(), and can be found within the 'readr' package documentation.
-#' @param max_load A number, the maximum number of rows to load. The default is infinity.
+#'   Cols specifications are things like col_integer(), col_character(), and can be found
+#'   within the \code{\link[readr]{cols}} documentation from the \code{readr} package.
+#'   If this isn't working well you can send in col_guess().
+#' @param max_load The maximum number of rows to load. The default is \code{Inf}
 #'
 #' @return A data frame with:
 #' \itemize{
-#'   \item \code{mrn}: Medical record number
-#'   \item \code{enc_id}: Encounter ID, renamed from PAT_ENC_CSN_ID
-#'   \item \code{rass_time}: Datetime when the RASS was recorded
-#'   \item \code{rass}: Integer value of RASS [-5, 4] representing
-#'    &nbsp;&nbsp;-5 Unarousable
-#'    &nbsp;&nbsp;-4 Deep sedation
-#'    &nbsp;&nbsp;-3 Moderate sedation
-#'    &nbsp;&nbsp;-2 Light sedation
-#'    &nbsp;&nbsp;-1 Drowsy
-#'    &nbsp;&nbsp;0 Alert and calm
-#'    &nbsp;&nbsp;1 Restless
-#'    &nbsp;&nbsp;2 Agitated
-#'    &nbsp;&nbsp;3 Very agitated
-#'    &nbsp;&nbsp;4 Combative
+#' \item \code{mrn}: Medical record number
+#' \item \code{enc_id}: Encounter ID, renamed from PAT_ENC_CSN_ID
+#' \item \code{rass_time}: Datetime when the RASS was recorded
+#' \item \code{rass}: Integer value of RASS ranging from -5 to +4 representing:
+#' * -5 Unarousable
+#' * -4 Deep sedation
+#' * -3 Moderate sedation
+#' * -2 Light sedation
+#' * -1 Drowsy
+#' * 0 Alert and calm
+#' * 1 Restless
+#' * 2 Agitated
+#' * 3 Very agitated
+#' * 4 Combative
 #' }
 #'
 #' @export
-#'
-#' @examples
 load_rass <- function(rass_filepath,
                       rass_colpaths = list(
                            col_character(),   # PAT_ENC_CSN_ID
