@@ -41,7 +41,7 @@ load_icd_dx <- function(icd_dx_filepath,
      require(readr)
 
      # Load the file and ensure names obey tidy conventtions
-     df_icd <- read_delim(paste0(data_path, fname_icd),
+     df_icd <- read_delim(icd_dx_filepath,
                           col_types = coltypes_icd,
                           n_max = max_load,
                           delim = '|') %>%

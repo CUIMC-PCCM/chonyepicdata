@@ -36,7 +36,7 @@ data/*
 *.rmd
 
 # Configuration files
-/config
+# /config
 
 # Testing files
 tests/

@@ -1,0 +1,23 @@
+---
+data_path: C:/Users/Andy/OneDrive - Columbia University Irving Medical Center/Research/data/delirium_sedation/post_epic_2023_11_16/
+data_path_chony: data/post_epic_2023_11_16/
+fname_encounter: report1_hospital_encounters.txt
+fname_race: report1a_patient_race.txt
+fname_address: report1b_patient_address.txt
+fname_insurance: report1c_patient_insurance.txt
+fname_adt: report2_adt_information.txt
+fname_icd_dx: report3_icd10_codes.txt
+fname_vitals: report4a_vital_signs.txt
+fname_ecmo_vad: report4b_ecmo_vad.txt
+fname_advanced_monitoring: report4c_advanced_monitoring.txt
+fname_sedation_delirium: report4d_sedation_delirium.txt
+fname_labs: report5_lab_values.txt
+fname_imv: report8_mechanical_ventilation.txt
+fname_icd_pcs: report9_icd_10_pcs.txt
+fname_ip_meds: report10_medication.txt
+fname_cpt: report11_cpt_codes.txt
+fname_op_encounters: report13_op_encounters.txt
+fname_op_notes: report14_op_notes.txt
+fname_op_diagnoses: report15_op_diagnoses.txt
+fname_op_meds: report16_op_medication.txt
+---
