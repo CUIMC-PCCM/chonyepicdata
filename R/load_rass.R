@@ -33,7 +33,7 @@
 #'
 #' @export
 load_rass <- function(rass_filepath,
-                      rass_colpaths = list(
+                      rass_coltypes = list(
                            col_character(),   # PAT_ENC_CSN_ID
                            col_character(),   # MRN
                            col_skip(),        # FLOWSHEET_GROUP
@@ -56,7 +56,7 @@ load_rass <- function(rass_filepath,
 
      df_rass <- read_delim(rass_filepath,
                            delim = '|',
-                           col_types = rass_colpaths,
+                           col_types = rass_coltypes,
                            n_max = max_load) %>%
           clean_names() %>%
           filter(str_detect(common_name, '^RASS')) %>%

@@ -6,7 +6,7 @@
 \usage{
 load_rass(
   rass_filepath,
-  rass_colpaths = list(col_character(), col_character(), col_skip(), col_character(),
+  rass_coltypes = list(col_character(), col_character(), col_skip(), col_character(),
     col_skip(), col_number(), col_skip(), col_skip(), col_character()),
   max_load = Inf
 )
@@ -14,11 +14,12 @@ load_rass(
 \arguments{
 \item{rass_filepath}{Path to the RASS data}
 
-\item{rass_colpaths}{A list of cols() specifications.
-Cols specifications are things like col_integer(), col_character(), and can be found within the \code{\link[readr]{cols}} documentation from the \code{readr} package.
-If this isn't working well you can send in col_guess().}
-
 \item{max_load}{The maximum number of rows to load. The default is \code{Inf}}
+
+\item{rass_colpaths}{A list of cols() specifications.
+Cols specifications are things like col_integer(), col_character(), and can be found
+within the \code{\link[readr]{cols}} documentation from the \code{readr} package.
+If this isn't working well you can send in col_guess().}
 }
 \value{
 A data frame with:

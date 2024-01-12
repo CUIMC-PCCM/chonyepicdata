@@ -7,7 +7,7 @@
 get_picu_intervals(
   adt_filepath,
   adt_coltypes = list(col_character(), col_character(), col_number(), col_character(),
-    col_datetime(), col_skip(), col_character(), col_skip()),
+    col_datetime(), col_skip(), col_character(), col_skip(), col_skip(), col_skip()),
   max_load = Inf
 )
 }
