@@ -53,20 +53,19 @@ load_icd_dx <- function(icd_dx_filepath,
      # The exception is ICD10 codes, which are usually reported as upper-case so
      # we will keep these as-is.
      df_icd <- df_icd %>%
-          mutate(across(-icd_10_code,
-                        ~ ifelse(is.character(.), str_to_lower(.), .))) %>%
+          mutate(dx_name = str_to_lower(dx_name)) %>%
 
           mutate(
                # Convert certain columns to correct formats, and ensure all ICD10 codes
                dx_date = as_date(dx_date)) %>%
 
-          # Change names of relevant columns to fit the previosu schema
+          # Change names of relevant columns to fit the previous schema
           rename(enc_id = pat_enc_csn_id, icd10_code = icd_10_code)
 
-     # Some rows inexplicably have 2 or more ICD10 codes. Split into new rows
-     df_icd <- df_icd %>%
-          separate_rows(icd10_code, sep = ',') %>%
-          mutate(icd10_code = str_trim(icd10_code))
+     # # Some rows inexplicably have 2 or more ICD10 codes. Split into new rows
+     # df_icd <- df_icd %>%
+     #      separate_rows(icd10_code, sep = ',') %>%
+     #      mutate(icd10_code = str_trim(icd10_code))
 
      return(df_icd)
 }
