@@ -22,7 +22,16 @@ If this isn't working well you can send in col_guess().}
 \item{max_load}{The maximum number of rows to load. The default is \code{Inf}}
 }
 \value{
-
+#' @return A data frame with:
+\itemize{
+\item \code{mrn}: Medical record number
+\item \code{enc_id}: Encounter ID, renamed from PAT_ENC_CSN_ID
+\item \code{capd_time}: Datetime when the CAP-D was recorded
+\item \code{capd}: Integer value of the summed components of all CAP-D. A score
+   of 9 or more means the patient screened positive for delirium.
+   Any time where a component of the CAP-D was recorded as NA will not be returned.
+   Scores need to be complete.
+}
 }
 \description{
 Load Cornell Assessment of Pediatric Delirium (CAP-D) data from Epic flowsheets.

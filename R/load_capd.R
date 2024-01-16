@@ -20,7 +20,7 @@
 #'    of 9 or more means the patient screened positive for delirium.
 #'    Any time where a component of the CAP-D was recorded as NA will not be returned.
 #'    Scores need to be complete.
-#'
+#'}
 #' @export
 #'
 load_capd <- function(capd_filepath,
