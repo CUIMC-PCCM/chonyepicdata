@@ -41,5 +41,3 @@ data/*
 # Testing files
 tests/
 
-# Scripts
-scripts
