@@ -31,12 +31,13 @@ get_picu_intervals <- function(adt_filepath,
                                ),
                                max_load = Inf)
 {
-     require(tidyverse)
-     require(janitor)
-     require(forcats)
-     require(lubridate)
-     require(stringr)
-     require(readr)
+     requireNamespace('janitor', quietly = TRUE, warn.conflicts = TRUE)
+     requireNamespace('forcats', quietly = TRUE, warn.conflicts = TRUE)
+     requireNamespace('lubridate', quietly = TRUE, warn.conflicts = TRUE)
+     requireNamespace('stringr', quietly = TRUE, warn.conflicts = TRUE)
+     requireNamespace('readr', quietly = TRUE, warn.conflicts = TRUE)
+     requireNamesapce('dplyr', quietly = TRUE, warn.conflicts = TRUE)
+     requireNamesapce('tidyr', quietly = TRUE, warn.conflicts = TRUE)
 
      # *****************************************************************************
      # Definitions -----------------------------------------------------------------
@@ -92,11 +93,11 @@ get_picu_intervals <- function(adt_filepath,
      #    4     Transfer out
      #    5/6   "Virtual" events that don't necessitate patient movement, such as for radiology studies
 
-     df_adt <- read_delim(file = adt_filepath,
+     df_adt <- readr::read_delim(file = adt_filepath,
                           col_types = adt_coltypes,
                           delim = '|',
                           n_max = max_load) %>%
-          clean_names() %>%
+          janitor::clean_names() %>%
 
           # Convert all characters to lowercase
           mutate(across(where(is.character), str_to_lower)) %>%
@@ -129,9 +130,9 @@ get_picu_intervals <- function(adt_filepath,
      # Drop any "virtual" locations, and also any procedural locations like the
      # operating room or endoscopy suite because patients never "stay" in those spots after
      # the procedure
-     df_adt <- df_adt %>% filter(!(department_name %in% c(virtual_locations,
+     df_adt <- df_adt %>% dplyr:(!(department_name %in% c(virtual_locations,
                                                           or_locations))) %>%
-          mutate(department_name = fct_drop(department_name))
+          mutate(department_name = forcats::fct_drop(department_name))
 
      # Sometimes the first event that occurred isn't listed as an admission.
      # Re-define the 1st event as an admission
@@ -151,19 +152,19 @@ get_picu_intervals <- function(adt_filepath,
      # location.
      # Pre-admit refers to the first row, which by definition can't match.
      adt_temp <- df_adt %>%
-          filter(event_type %in% c('admit', 'discharge', 'transfer_in')) %>%
+          dplyr::filter(event_type %in% c('admit', 'discharge', 'transfer_in')) %>%
           mutate(department_name = as.character(department_name)) %>%
           group_by(mrn, enc_id) %>%
           arrange(mrn, enc_id, adt_date) %>%
           mutate(
                # Location prior to this one. Set equal to pre_admit if it wasn't defined.
-               last_loc = lag(department_name),
+               last_loc = dplyr::lag(department_name),
                last_loc = replace_na(last_loc, 'pre_admit'),
 
                # Level of care prior to this one (PICU or non-PICU).
                # Set equal to pre_admit if it wasn't defined.
-               last_care_level = lag(level_of_care),
-               last_care_level = fct_na_value_to_level(last_care_level, level = 'pre_admit'),
+               last_care_level = dplyr::lag(level_of_care),
+               last_care_level = forcats::fct_na_value_to_level(last_care_level, level = 'pre_admit'),
 
                # Create a classification for the last entry for a patient (which may or may
                # not be the discharge
@@ -174,14 +175,14 @@ get_picu_intervals <- function(adt_filepath,
           # Only keep rows where the last level of care is different than the current level of care, which
           # defines a "meaningful" (i.e. outside PICU to PICU, or vice versa).
           # Keep first and last entries (usually admit/discharge) by default.
-          filter(event_type == 'admit' | event_type == 'discharge' | last_row |
+          dplyr::filter(event_type == 'admit' | event_type == 'discharge' | last_row |
                       (as.character(last_care_level) != as.character(level_of_care)))
 
      # Get a value for "last PICU" which is TRUE if the prior row for this patient was a
      # PICU hospitalization
      adt_temp <- adt_temp %>% group_by(mrn, enc_id) %>%
           mutate(
-               last_picu = lag(picu),
+               last_picu = dplyr::lag(picu),
                last_picu = replace_na(last_picu, FALSE)) %>%
           ungroup()
 
@@ -215,7 +216,7 @@ get_picu_intervals <- function(adt_filepath,
                  icu_stop_date = if_else(icu_stop, adt_date, NA_POSIXct_)) %>%
           pivot_longer(cols = c('icu_start_date', 'icu_stop_date'),
                        names_to = 'icu_event', values_to = 'icu_event_date') %>%
-          filter(!is.na(icu_event_date)) %>%
+          dplyr::filter(!is.na(icu_event_date)) %>%
           select(-icu_start, -icu_stop, -adt_date) %>%
           pivot_wider(id_cols = c('mrn', 'enc_id'),
                       names_from = 'icu_event',

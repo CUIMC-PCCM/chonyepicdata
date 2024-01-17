@@ -33,12 +33,13 @@ load_icd_dx <- function(icd_dx_filepath,
                             ),
                             max_load = Inf)
 {
-     require(tidyverse)
-     require(janitor)
-     require(forcats)
-     require(lubridate)
-     require(stringr)
-     require(readr)
+     requireNamespace('janitor', quietly = TRUE, warn.conflicts = TRUE)
+     requireNamespace('forcats', quietly = TRUE, warn.conflicts = TRUE)
+     requireNamespace('lubridate', quietly = TRUE, warn.conflicts = TRUE)
+     requireNamespace('stringr', quietly = TRUE, warn.conflicts = TRUE)
+     requireNamespace('readr', quietly = TRUE, warn.conflicts = TRUE)
+     requireNamesapce('tidyr', quietly = TRUE, warn.conflicts = TRUE)
+     requireNamesapce('dplyr', quietly = TRUE, warn.conflicts = TRUE)
 
      # Load the file and ensure names obey tidy conventtions
      df_icd <- read_delim(icd_dx_filepath,

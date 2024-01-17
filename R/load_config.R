@@ -9,13 +9,13 @@
 #' @return Returns nothing if useglobal=TRUE. Otherwise returns a list containing configuration variables.
 #' These can run using \code{list2env(config, globalenv())}
 #' @export
-load_config <- function(yml_path = 'config/config.yml',
+load_config <- function(yml_path = 'inst/config/config.yml',
                         useglobal = FALSE) {
-     require('yaml')
+
      if(useglobal){
           list2env(read_yaml(yml_path), globalenv())
      }
      else{
-          return(read_yaml(yml_path))
+          return(yaml::read_yaml(yml_path))
      }
 }

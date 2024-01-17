@@ -4,18 +4,27 @@ Title: Loads, cleans, and processes CHONY EHR inpatient data from the Epic era (
 Version: 0.1.0
 Author: Andrew Geneslaw
 Maintainer: Andrew Geneslaw <asg2195@cumc.columbia.edu>
-Description: TBD
-License: TBD
+Description: This section TBD at a later date.
+License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Suggests: 
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    yaml
 Config/testthat/edition: 3
 RoxygenNote: 7.2.3
 Imports: 
+    cli,
+    dplyr,
     forcats,
+    glue,
     janitor,
+    lifecycle,
     lubridate,
+    magrittr
     readr,
+    rlang,
     stringr,
-    tidyr
+    tidyr,
+    withr
+Roxygen: list(markdown = TRUE)

@@ -14,12 +14,12 @@ load_rass(
 \arguments{
 \item{rass_filepath}{Path to the RASS data}
 
-\item{max_load}{The maximum number of rows to load. The default is \code{Inf}}
-
-\item{rass_colpaths}{A list of cols() specifications.
+\item{rass_coltypes}{A list of cols() specifications.
 Cols specifications are things like col_integer(), col_character(), and can be found
 within the \code{\link[readr]{cols}} documentation from the \code{readr} package.
 If this isn't working well you can send in col_guess().}
+
+\item{max_load}{The maximum number of rows to load. The default is \code{Inf}}
 }
 \value{
 A data frame with:

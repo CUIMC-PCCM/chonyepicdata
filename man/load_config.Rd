@@ -4,7 +4,7 @@
 \alias{load_config}
 \title{load_config}
 \usage{
-load_config(yml_path = "config/config.yml", useglobal = FALSE)
+load_config(yml_path = "inst/config/config.yml", useglobal = FALSE)
 }
 \arguments{
 \item{yml_path}{A character vector path to the configuration file. Default is config/config.yml}

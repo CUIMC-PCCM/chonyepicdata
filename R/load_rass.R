@@ -7,7 +7,7 @@
 #'
 #' @md
 #' @param rass_filepath Path to the RASS data
-#' @param rass_colpaths A list of cols() specifications.
+#' @param rass_coltypes A list of cols() specifications.
 #'   Cols specifications are things like col_integer(), col_character(), and can be found
 #'   within the \code{\link[readr]{cols}} documentation from the \code{readr} package.
 #'   If this isn't working well you can send in col_guess().
@@ -47,19 +47,20 @@ load_rass <- function(rass_filepath,
                       max_load = Inf)
 
 {
-     require(tidyverse)
-     require(janitor)
-     require(forcats)
-     require(lubridate)
-     require(stringr)
-     require(readr)
+     requireNamespace('janitor', quietly = TRUE, warn.conflicts = TRUE)
+     requireNamespace('forcats', quietly = TRUE, warn.conflicts = TRUE)
+     requireNamespace('lubridate', quietly = TRUE, warn.conflicts = TRUE)
+     requireNamespace('stringr', quietly = TRUE, warn.conflicts = TRUE)
+     requireNamespace('readr', quietly = TRUE, warn.conflicts = TRUE)
+     requireNamesapce('tidyr', quietly = TRUE, warn.conflicts = TRUE)
+     requireNamesapce('dplyr', quietly = TRUE, warn.conflicts = TRUE)
 
      df_rass <- read_delim(rass_filepath,
                            delim = '|',
                            col_types = rass_coltypes,
                            n_max = max_load) %>%
           clean_names() %>%
-          filter(str_detect(common_name, '^RASS')) %>%
+          dplyr::filter(str_detect(common_name, '^RASS')) %>%
           mutate(across(where(is.character), str_to_lower)) %>%
           mutate(recorded_time = ymd_hms(recorded_time)) %>%
           rename(enc_id = pat_enc_csn_id,
