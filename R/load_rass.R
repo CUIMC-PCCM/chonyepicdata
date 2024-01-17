@@ -47,13 +47,6 @@ load_rass <- function(rass_filepath,
                       max_load = Inf)
 
 {
-     requireNamespace('janitor', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamespace('forcats', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamespace('lubridate', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamespace('stringr', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamespace('readr', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamesapce('tidyr', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamesapce('dplyr', quietly = TRUE, warn.conflicts = TRUE)
 
      df_rass <- read_delim(rass_filepath,
                            delim = '|',
@@ -62,7 +55,7 @@ load_rass <- function(rass_filepath,
           clean_names() %>%
           dplyr::filter(str_detect(common_name, '^RASS')) %>%
           mutate(across(where(is.character), str_to_lower)) %>%
-          mutate(recorded_time = ymd_hms(recorded_time)) %>%
+          mutate(recorded_time = lubridate::ymd_hms(recorded_time)) %>%
           rename(enc_id = pat_enc_csn_id,
                  rass_time = recorded_time,
                  rass = cust_list_map_value) %>%

@@ -6,10 +6,8 @@
 \usage{
 get_picu_intervals(
   adt_filepath,
-  adt_coltypes = list(readr::col_character(), readr::col_character(),
-    readr::col_number(), readr::col_character(), readr::col_datetime(),
-    readr::col_skip(), readr::col_character(), readr::col_skip(), readr::col_skip(),
-    readr::col_skip()),
+  adt_coltypes = list(col_character(), col_character(), col_number(), col_character(),
+    col_datetime(), col_skip(), col_character(), col_skip(), col_skip(), col_skip()),
   max_load = Inf
 )
 }

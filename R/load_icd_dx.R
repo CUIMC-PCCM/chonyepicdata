@@ -33,13 +33,6 @@ load_icd_dx <- function(icd_dx_filepath,
                             ),
                             max_load = Inf)
 {
-     requireNamespace('janitor', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamespace('forcats', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamespace('lubridate', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamespace('stringr', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamespace('readr', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamesapce('tidyr', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamesapce('dplyr', quietly = TRUE, warn.conflicts = TRUE)
 
      # Load the file and ensure names obey tidy conventtions
      df_icd <- read_delim(icd_dx_filepath,
@@ -54,8 +47,7 @@ load_icd_dx <- function(icd_dx_filepath,
      # The exception is ICD10 codes, which are usually reported as upper-case so
      # we will keep these as-is.
      df_icd <- df_icd %>%
-          mutate(across(-icd_10_code,
-                        ~ ifelse(is.character(.), str_to_lower(.), .))) %>%
+          mutate(dx_name = str_to_lower(dx_name)) %>%
 
           mutate(
                # Convert certain columns to correct formats, and ensure all ICD10 codes
@@ -66,8 +58,8 @@ load_icd_dx <- function(icd_dx_filepath,
 
      # Some rows inexplicably have 2 or more ICD10 codes. Split into new rows
      df_icd <- df_icd %>%
-          separate_rows(icd10_code, sep = ',') %>%
-          mutate(icd10_code = str_trim(icd10_code))
+          tidyr::separate_rows(icd10_code, sep = ',') %>%
+          mutate(icd10_code = stringr::str_trim(icd10_code))
 
      return(df_icd)
 }

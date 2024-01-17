@@ -37,13 +37,6 @@ load_capd <- function(capd_filepath,
                       ),
                       max_load = Inf)
 {
-     requireNamespace('janitor', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamespace('forcats', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamespace('lubridate', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamespace('stringr', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamespace('readr', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamesapce('tidyr', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamesapce('dplyr', quietly = TRUE, warn.conflicts = TRUE)
 
      df_capd <- read_delim(capd_filepath,
                            delim = '|',
@@ -61,21 +54,21 @@ load_capd <- function(capd_filepath,
                     common_name == 'Is the child underactive = very little movement while awake?' ~ 'capd_movement',
                     common_name == 'Does it take the child a long time to respond to interactions?' ~ 'capd_response_time'
                )) %>%
-          dplyr::filter(!is.na(capd_question)) %>%
+          filter(!is.na(capd_question)) %>%
           mutate(across(where(is.character), str_to_lower)) %>%
-          mutate(recorded_time = ymd_hms(recorded_time)) %>%
+          mutate(recorded_time = lubridate::ymd_hms(recorded_time)) %>%
           rename(enc_id = pat_enc_csn_id,
                  capd_time = recorded_time,
                  component_name = capd_question,
                  component_value = cust_list_map_value) %>%
-          pivot_wider(id_cols = c(mrn, enc_id, capd_time),
+          tidyr::pivot_wider(id_cols = c(mrn, enc_id, capd_time),
                       names_from = 'component_name',
                       values_from = 'component_value',
                       values_fill = NA) %>%
           mutate(capd = capd_eye_contact + capd_purposeful + capd_aware + capd_communicate +
                                     capd_restless + capd_inconsolable + capd_movement + capd_response_time) %>%
           select(mrn, enc_id, capd_time, capd) %>%
-          dplyr::filter(!is.na(capd)) %>%
+          filter(!is.na(capd)) %>%
           arrange(mrn, enc_id, capd_time)
 
      return(df_capd)

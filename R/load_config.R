@@ -13,7 +13,7 @@ load_config <- function(yml_path = 'inst/config/config.yml',
                         useglobal = FALSE) {
 
      if(useglobal){
-          list2env(read_yaml(yml_path), globalenv())
+          list2env(yaml::read_yaml(yml_path), globalenv())
      }
      else{
           return(yaml::read_yaml(yml_path))
