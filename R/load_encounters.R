@@ -36,13 +36,6 @@ load_encounters <- function(encounter_filepath,
                             ),
                             max_load = Inf)
 {
-     requireNamespace('janitor', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamespace('forcats', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamespace('lubridate', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamespace('stringr', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamespace('readr', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamesapce('tidyr', quietly = TRUE, warn.conflicts = TRUE)
-     requireNamesapce('dplyr', quietly = TRUE, warn.conflicts = TRUE)
 
      df_encounters <- read_delim(paste0(encounter_filepath),
                                  delim = '|',
@@ -58,8 +51,8 @@ load_encounters <- function(encounter_filepath,
                sex = factor(sex, levels = c('male', 'female', 'other')),
                hospital_admission_date = admission_date,
                hospital_discharge_date = discharge_date) %>%
-          dplyr::select(-admission_date, -discharge_date) %>%
-          dplyr::rename(enc_id = pat_enc_csn_id)
+          select(-admission_date, -discharge_date) %>%
+          rename(enc_id = pat_enc_csn_id)
 
      return(df_encounters)
 
