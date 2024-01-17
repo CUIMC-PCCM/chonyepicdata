@@ -22,13 +22,13 @@ Cols specifications are things like col_integer(), col_character(), and can be f
 \value{
 A data frame with:
 \itemize{
-  \item \code{mrn}: Medical record number
-  \item \code{enc_id}: Encounter ID, renamed from PAT_ENC_CSN_ID
-  \item \code{icd10_code}: Numeric ICD10 code with the format XXXXXXX (the period character is removed)
-  \item \code{dx_name}: Description of the ICD10 diagnosis
-  \item \code{dx_date}: Date the diagnosis was placed
-  \item \code{primary_dx_yn}: Is this a primary diagnosis (Y/N)? (Usually the one listed first)
-  \item \code{dx_type}: Where did the diagnosis come from? (Billing records, problem list, etc)
+\item \code{mrn}: Medical record number
+\item \code{enc_id}: Encounter ID, renamed from PAT_ENC_CSN_ID
+\item \code{icd10_code}: Numeric ICD10 code with the format XXXXXXX (the period character is removed)
+\item \code{dx_name}: Description of the ICD10 diagnosis
+\item \code{dx_date}: Date the diagnosis was placed
+\item \code{primary_dx_yn}: Is this a primary diagnosis (Y/N)? (Usually the one listed first)
+\item \code{dx_type}: Where did the diagnosis come from? (Billing records, problem list, etc)
 }
 }
 \description{

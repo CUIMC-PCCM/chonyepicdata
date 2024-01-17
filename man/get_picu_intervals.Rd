@@ -22,10 +22,10 @@ Cols specifications are things like col_integer(), col_character(), and can be f
 \value{
 A data frame with:
 \itemize{
-  \item \code{mrn}: Medical record number
-  \item \code{enc_id}: Encounter ID, renamed from PAT_ENC_CSN_ID
-  \item \code{icu_start_date}: Datetime for the start of each ICU stay
-  \item \code{icu_stop_date}: Datetime for the stop of each ICU stay
+\item \code{mrn}: Medical record number
+\item \code{enc_id}: Encounter ID, renamed from PAT_ENC_CSN_ID
+\item \code{icu_start_date}: Datetime for the start of each ICU stay
+\item \code{icu_stop_date}: Datetime for the stop of each ICU stay
 }
 }
 \description{
