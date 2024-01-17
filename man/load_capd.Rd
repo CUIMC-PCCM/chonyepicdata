@@ -28,9 +28,9 @@ If this isn't working well you can send in col_guess().}
 \item \code{enc_id}: Encounter ID, renamed from PAT_ENC_CSN_ID
 \item \code{capd_time}: Datetime when the CAP-D was recorded
 \item \code{capd}: Integer value of the summed components of all CAP-D. A score
-   of 9 or more means the patient screened positive for delirium.
-   Any time where a component of the CAP-D was recorded as NA will not be returned.
-   Scores need to be complete.
+of 9 or more means the patient screened positive for delirium.
+Any time where a component of the CAP-D was recorded as NA will not be returned.
+Scores need to be complete.
 }
 }
 \description{

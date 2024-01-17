@@ -22,12 +22,12 @@ Cols specifications are things like col_integer(), col_character(), and can be f
 \value{
 A data frame with reformatted and cleaned encounter-level information:
 \itemize{
-    \item \code{MRN}: Medical record number
-    \item \code{enc_id}: Encounter ID
-    \item \code{dob}: Date of birth
-    \item \code{hospital_admission_date}: Hospital admission datetime
-    \item \code{hospital_discharge_date}: Hospital discharge datetime
-    }
+\item \code{MRN}: Medical record number
+\item \code{enc_id}: Encounter ID
+\item \code{dob}: Date of birth
+\item \code{hospital_admission_date}: Hospital admission datetime
+\item \code{hospital_discharge_date}: Hospital discharge datetime
+}
 }
 \description{
 Load inpatient hospital encounters from a .txt file from Epic-era data.
