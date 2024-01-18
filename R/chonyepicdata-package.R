@@ -24,6 +24,7 @@
 #' @importFrom lubridate as_date
 #' @importFrom lubridate duration
 #' @importFrom lubridate interval
+#' @importFrom lubridate NA_POSIXct_
 #' @importFrom magrittr %>%
 #' @importFrom readr col_character
 #' @importFrom readr col_date

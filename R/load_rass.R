@@ -47,6 +47,8 @@ load_rass <- function(rass_filepath,
                       max_load = Inf)
 
 {
+     # Required to avoid warnings when building package
+     common_name <- recorded_time <- pat_enc_csn_id <- cust_list_map_value <- mrn <- NULL
 
      df_rass <- read_delim(rass_filepath,
                            delim = '|',

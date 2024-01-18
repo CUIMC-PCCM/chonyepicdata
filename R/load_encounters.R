@@ -37,6 +37,9 @@ load_encounters <- function(encounter_filepath,
                             max_load = Inf)
 {
 
+     # Required to avoid warnings when building package
+     birth_date <-sex <-admission_date <-discharge_date <-pat_enc_csn_id <- NULL
+
      df_encounters <- read_delim(paste0(encounter_filepath),
                                  delim = '|',
                                  col_types = coltypes_enc,

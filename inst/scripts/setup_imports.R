@@ -3,4 +3,4 @@ usethis::use_import_from('dplyr', c('mutate', 'across', 'select', 'rename', 'if_
 usethis::use_import_from('readr', c('cols', 'read_delim', 'col_character','col_date','col_datetime','col_double','col_factor','col_guess','col_integer','col_logical','col_number','col_skip','col_time'))
 usethis::use_import_from('magrittr', '%>%')
 usethis::use_import_from('stringr', c('str_to_lower', 'str_detect'))
-usethis::use_import_from('lubridate', c('%within%', 'interval', 'duration', 'as_date'))
+usethis::use_import_from('lubridate', c('%within%', 'interval', 'duration', 'as_date', 'NA_POSIXct_'))

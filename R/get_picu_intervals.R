@@ -32,6 +32,11 @@ get_picu_intervals <- function(adt_filepath,
                                max_load = Inf)
 {
 
+     # Required to avoid warnings when building package
+     pat_enc_csn_id <- effective_time <- adt_date <- event_id <- level_of_care <- dplyr <-
+          department_name <- mrn <- enc_id <- event_type <- last_loc <- last_care_level <-
+          last_row <- picu <- last_picu <- icu_stop <- icu_start <- icu_event_date <- NULL
+
      # *****************************************************************************
      # Definitions -----------------------------------------------------------------
      # *****************************************************************************
@@ -87,9 +92,9 @@ get_picu_intervals <- function(adt_filepath,
      #    5/6   "Virtual" events that don't necessitate patient movement, such as for radiology studies
 
      df_adt <- read_delim(file = adt_filepath,
-                                 col_types = adt_coltypes,
-                                 delim = '|',
-                                 n_max = max_load) %>%
+                          col_types = adt_coltypes,
+                          delim = '|',
+                          n_max = max_load) %>%
           clean_names() %>%
 
           # Convert all characters to lowercase
@@ -169,7 +174,7 @@ get_picu_intervals <- function(adt_filepath,
           # defines a "meaningful" (i.e. outside PICU to PICU, or vice versa).
           # Keep first and last entries (usually admit/discharge) by default.
           filter(event_type == 'admit' | event_type == 'discharge' | last_row |
-                             (as.character(last_care_level) != as.character(level_of_care)))
+                      (as.character(last_care_level) != as.character(level_of_care)))
 
      # Get a value for "last PICU" which is TRUE if the prior row for this patient was a
      # PICU hospitalization
@@ -208,13 +213,13 @@ get_picu_intervals <- function(adt_filepath,
           mutate(icu_start_date = if_else(icu_start, adt_date, NA_POSIXct_),
                  icu_stop_date = if_else(icu_stop, adt_date, NA_POSIXct_)) %>%
           tidyr::pivot_longer(cols = c('icu_start_date', 'icu_stop_date'),
-                       names_to = 'icu_event', values_to = 'icu_event_date') %>%
+                              names_to = 'icu_event', values_to = 'icu_event_date') %>%
           filter(!is.na(icu_event_date)) %>%
           select(-icu_start, -icu_stop, -adt_date) %>%
           tidyr::pivot_wider(id_cols = c('mrn', 'enc_id'),
-                      names_from = 'icu_event',
-                      values_from = 'icu_event_date',
-                      values_fn = list) %>%
+                             names_from = 'icu_event',
+                             values_from = 'icu_event_date',
+                             values_fn = list) %>%
           tidyr::unnest(cols = c('icu_start_date', 'icu_stop_date'))
 
      return(adt_icu_simple)

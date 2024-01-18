@@ -38,6 +38,12 @@ load_capd <- function(capd_filepath,
                       max_load = Inf)
 {
 
+     # Required to avoid warnings when building package
+     capd_question <- recorded_time <- pat_enc_csn_id <- cust_list_map_value <- mrn <-
+          enc_id <- capd_time <- capd_eye_contact <- capd_purposeful <- capd_aware <-
+          capd_communicate <- capd_restless <- capd_inconsolable <- capd_movement <-
+          capd_response_time <- capd <- NULL
+
      df_capd <- read_delim(capd_filepath,
                            delim = '|',
                            col_types = capd_colpaths,

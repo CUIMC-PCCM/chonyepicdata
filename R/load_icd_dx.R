@@ -34,6 +34,9 @@ load_icd_dx <- function(icd_dx_filepath,
                             max_load = Inf)
 {
 
+     # Required to avoid warnings when building package
+     dx_name <- dx_date <- pat_enc_csn_id <- icd_10_code <- icd10_code <- NULL
+
      # Load the file and ensure names obey tidy conventtions
      df_icd <- read_delim(icd_dx_filepath,
                           col_types = coltypes_icd,
