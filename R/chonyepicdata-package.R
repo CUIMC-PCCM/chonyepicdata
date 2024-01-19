@@ -40,6 +40,10 @@
 #' @importFrom readr cols
 #' @importFrom readr read_delim
 #' @importFrom stringr str_detect
+#' @importFrom stringr str_match
+#' @importFrom stringr str_remove_all
+#' @importFrom stringr str_replace
 #' @importFrom stringr str_to_lower
+#' @importFrom stringr str_trim
 ## usethis namespace: end
 NULL

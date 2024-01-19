@@ -33,9 +33,9 @@ get_picu_intervals <- function(adt_filepath,
 {
 
      # Required to avoid warnings when building package
-     pat_enc_csn_id <- effective_time <- adt_date <- event_id <- level_of_care <- dplyr <-
-          department_name <- mrn <- enc_id <- event_type <- last_loc <- last_care_level <-
-          last_row <- picu <- last_picu <- icu_stop <- icu_start <- icu_event_date <- NULL
+     pat_enc_csn_id <- effective_time <- adt_date <- event_id <- level_of_care <-
+     department_name <- mrn <- enc_id <- event_type <- last_loc <- last_care_level <-
+     last_row <- picu <- last_picu <- icu_stop <- icu_start <- icu_event_date <- NULL
 
      # *****************************************************************************
      # Definitions -----------------------------------------------------------------
@@ -128,7 +128,7 @@ get_picu_intervals <- function(adt_filepath,
      # Drop any "virtual" locations, and also any procedural locations like the
      # operating room or endoscopy suite because patients never "stay" in those spots after
      # the procedure
-     df_adt <- df_adt %>% dplyr:(!(department_name %in% c(virtual_locations,
+     df_adt <- df_adt %>% filter(!(department_name %in% c(virtual_locations,
                                                           or_locations))) %>%
           mutate(department_name = forcats::fct_drop(department_name))
 
