@@ -1,6 +1,6 @@
 ---
 data_path: C:/Users/Andy/OneDrive - Columbia University Irving Medical Center/Research/data/delirium_sedation/post_epic_2023_11_16/
-data_path_chony: C:/Users/asg2195/OneDrive - Columbia University Irving Medical Center/Research/data/delirium_sedation/post_epic_2023_11_16/
+data_path_chony: C:/Users/asg2195/OneDrive - cumc.columbia.edu/Research/data/delirium_sedation/post_epic_2023_11_16/
 fname_encounter: report1_hospital_encounters.txt
 fname_race: report1a_patient_race.txt
 fname_address: report1b_patient_address.txt

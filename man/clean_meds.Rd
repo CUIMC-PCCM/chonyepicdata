@@ -6,7 +6,11 @@
 \usage{
 clean_meds(
   df_meds,
-  medlist = NULL,
+  medlist = med_str <- c("midazolam", "lorazepam", "diazepam", "clonazepam",
+    "alprazolam", "morphine", "fentanyl", "hydromorphone", "oxycodone", "clonidine",
+    "ketamine", "pentobarbital", "quetiapine", "haloperidol", "risperidone",
+    "olanzapine", "aripiprazole", "diphenhydramine", "hydroyxyzine", "rocuronium",
+    "vecuronium", "cisatracurium"),
   mar_med_given = c("anesthesia volume adjustment",
     "bolus from bag (dual sign required)", "bolus from bag",
     "continue to inpatient floor", "continued from or", "continued from pre",
@@ -18,7 +22,8 @@ clean_meds(
      "started", "verification"),
   mar_med_stopped = c("held", "held by provider", "mar hold",
     "stopped (dual sign required)", "stopped", "stop infusion"),
-  row_limit = Inf
+  row_limit = Inf,
+  time_limits = NA
 )
 }
 \arguments{
@@ -26,8 +31,8 @@ clean_meds(
 doses, concentrations, and rates.}
 
 \item{medlist}{An array of characters that will be matched to determine
-medication names to keep. Partial matches can be used according to \code{\link[stringr]} rules.
-If argument is provided, no filtering will be performed at this level.}
+medication names to keep. Partial matches can be used according to \link\link{stringr} rules.
+Pass \code{NA} if you you don't want to filter at all.}
 
 \item{mar_med_given}{An array of characters that specify whether a medication
 was actually given to the patient. Default values are provided. Rows that
@@ -38,6 +43,10 @@ definitively stopped. Default values are provided.}
 
 \item{row_limit}{Maximum number of rows to allow. Useful for debugging very
 large files.}
+
+\item{time_limits}{Data table of encounter IDs and time intervals during
+which medication doses should be included. The first column should be named
+'enc_id' and the second column should be formatted as time intervals using \code{\link[lubridate:interval]{lubridate::interval()}}}
 }
 \value{
 A data frame with raw medication data. Medication name is saved in character format
@@ -48,7 +57,4 @@ Clean and process raw medication data loaded from Epic EHR. The majority of
 this work is string matching and removal to extract meaningful medication
 names, doses, and concentrations. Doses are not weight-based unless recorded
 as such.
-}
-\seealso{
-\code{\link[=clean_meds]{clean_meds()}}
 }

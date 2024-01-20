@@ -34,16 +34,25 @@ df_picu_startstop <- get_picu_intervals(paste0(data_path_chony, fname_adt)) %>%
 # Get RASS scores for all these patients
 df_rass <- load_rass(paste0(data_path_chony, fname_sedation_delirium)) %>%
      filter(enc_id %in% t21_enc_id) %>%
-     arrange(mrn, enc_id, rass_date)
+     arrange(mrn, enc_id, rass_time)
 
 # Get CAPD scores for all these patients
 df_capd <- load_capd(paste0(data_path_chony, fname_sedation_delirium)) %>%
      filter(enc_id %in% t21_enc_id) %>%
-     arrange(mrn, enc_id, capd_date)
+     arrange(mrn, enc_id, capd_time)
 
 # Get all of the ICD codes across time for these patients.
 df_icd_t21only <- df_icd %>% filter(enc_id %in% t21_enc_id) %>%
      select(mrn, enc_id, icd10_code, dx_name, dx_date)
+
+# Load medication data
+df_meds <- load_meds(paste0(data_path_chony, fname_ip_meds))
+df_meds <- df_meds %>% filter(mrn %in% t21_mrn)
+time_limits <- df_picu_startstop %>%
+     mutate(picu_intervals = interval(icu_start_date, icu_stop_date)) %>%
+     select(-mrn, -icu_start_date, -icu_stop_date)
+med_exposure <- clean_meds(df_meds, medlist = c('fentanyl', 'midazolam', 'dexmedetomidine'), time_limits = time_limits)
+
 
 # Example of how to save:
 # write_xlsx(df_rass, 'file_location.xlsx')

@@ -8,7 +8,7 @@
 #' @param df_meds Medication datafile. Must have columns with medication names,
 #' doses, concentrations, and rates.
 #' @param medlist An array of characters that will be matched to determine
-#' medication names to keep. Partial matches can be used according to \code{\link[stringr]} rules.
+#' medication names to keep. Partial matches can be used according to \link[stringr] rules.
 #' Pass \code{NA} if you you don't want to filter at all.
 #' @param mar_med_given An array of characters that specify whether a medication
 #' was actually given to the patient. Default values are provided. Rows that
@@ -19,41 +19,39 @@
 #' large files.
 #' @param time_limits Data table of encounter IDs and time intervals during
 #' which medication doses should be included. The first column should be named
-#' 'enc_id' and the second column should be formatted as time intervals using
-#' \code{lubridate} interval()
+#' 'enc_id' and the second column should be formatted as time intervals using [lubridate::interval()]
 #'
 #'
 #' @return A data frame with raw medication data. Medication name is saved in character format
 #' in the column 'med_name'. These should be cleaned and processed.
 #'
-#' @seealso [clean_meds()]
 #' @export
 clean_meds <- function(df_meds,
-                       medlist = # List of medications we will look at
-                            med_str <- c(
-                                 'midazolam',
-                                 'lorazepam',
-                                 'diazepam',
-                                 'clonazepam',
-                                 'alprazolam',
-                                 'morphine',
-                                 'fentanyl',
-                                 'hydromorphone',
-                                 'oxycodone',
-                                 'clonidine',
-                                 'ketamine',
-                                 'pentobarbital',
-                                 'quetiapine',
-                                 'haloperidol',
-                                 'risperidone',
-                                 'olanzapine',
-                                 'aripiprazole',
-                                 'diphenhydramine',
-                                 'hydroyxyzine',
-                                 'rocuronium',
-                                 'vecuronium',
-                                 'cisatracurium'
-                            ),
+                       medlist = c(
+                            'midazolam',
+                            'lorazepam',
+                            'diazepam',
+                            'clonazepam',
+                            'alprazolam',
+                            'morphine',
+                            'fentanyl',
+                            'hydromorphone',
+                            'oxycodone',
+                            'clonidine',
+                            'ketamine',
+                            'pentobarbital',
+                            'quetiapine',
+                            'haloperidol',
+                            'risperidone',
+                            'olanzapine',
+                            'aripiprazole',
+                            'diphenhydramine',
+                            'hydroyxyzine',
+                            'rocuronium',
+                            'vecuronium',
+                            'cisatracurium',
+                            'dexmedetomidine'
+                       ),
                        mar_med_given =   c('anesthesia volume adjustment',
                                            'bolus from bag (dual sign required)',
                                            'bolus from bag',
@@ -91,7 +89,7 @@ clean_meds <- function(df_meds,
 
                        row_limit = Inf,
 
-                       time_limits = NA
+                       time_limits
 )
 
 {
@@ -106,6 +104,9 @@ clean_meds <- function(df_meds,
                              'suspension',
                              'solution',
                              'oral',
+                             'gastrostomy tube',
+                             'jejunostomy tube',
+                             'tube',
                              'packet',
                              'soln',
                              'solid',
@@ -117,13 +118,16 @@ clean_meds <- function(df_meds,
                              'enteric',
                              'pack',
                              'coated',
+                             'or caps',
                              'concentrate',
                              'delayed release',
                              'disintegrating',
                              'chewable',
                              'syrup',
+                             'syrp',
                              'drops',
                              'elixer',
+                             'sublingual',
                              'lozenge'
      )
      enteral_med_string <- str_flatten(enteral_med_string, '|')
@@ -131,6 +135,10 @@ clean_meds <- function(df_meds,
      # Create a character array of IV medications
      iv_med_string <- c(
           'injection',
+          'intravenous',
+          'intracatheter',
+          'apheresis',
+          'via circuit',
           'infusion',
           'injectable',
           'inj',
@@ -138,6 +146,8 @@ clean_meds <- function(df_meds,
           'bolus',
           'syringe',
           'iv syringe',
+          'iv soln',
+          'ij soln',
           'ivpb',
           'iv$',
           ' iv ',
@@ -146,17 +156,6 @@ clean_meds <- function(df_meds,
           'dexmedetomidine'
      )
      iv_med_string <- str_flatten(iv_med_string, '|')
-
-     # Flag oral versus IV medications using string matching
-     meds_cleaned <- meds_cleaned %>%
-          mutate(route = case_when(
-               str_detect(med, iv_med_string) ~ 'iv',
-               str_detect(med, enteral_med_string) ~ 'enteral',
-               str_detect(med, 'patch') ~ 'patch',
-               TRUE ~ 'other'
-          ),
-          route = factor(route))
-
 
      # *****************************************************************************
      # Initial cleanup -------------------------------------------------------------
@@ -184,7 +183,7 @@ clean_meds <- function(df_meds,
 
      # Remove any rows that do not match the list of medication names (if it
      # was provided)
-     if(!is.na(medlist)) {
+     if(!all(is.na(medlist))) {
           med_str <- str_flatten(medlist, collapse = '|')
           df_meds <- df_meds %>%
                filter(str_detect(med, med_str))
@@ -193,22 +192,29 @@ clean_meds <- function(df_meds,
      # Remove any rows that are not within the user-specified time intervals
      # for a given encounter
      if(exists('time_limits')) {
-          if(!is.na(time_limits)) {
-               tryCatch({
-                    intcolname <- sym(names(time_limits)[2])
-                    intcolname <- sym(i)
-                    df_meds <- df_meds %>%
-                         inner_join(time_limits) %>%
-                         filter(med_time %within% !!intcolname)
-               },
-               finally = print('Error in intervals defined by time_limits argument')
-               )
+          tryCatch({
+               intcolname <- sym(names(time_limits)[2])
+               df_meds <- df_meds %>%
+                    inner_join(time_limits, multiple = 'all', by = 'enc_id') %>%
+                    filter(med_time %within% !!intcolname) %>%
+                    select(-!!intcolname)
           }
+          )
      }
 
      # *****************************************************************************
      # String processing -----------------------------------------------------------
      # *****************************************************************************
+
+     # Flag oral versus IV medications using string matching
+     df_meds <- df_meds %>%
+          mutate(route = case_when(
+               str_detect(route, iv_med_string) ~ 'iv',
+               str_detect(route, enteral_med_string) ~ 'enteral',
+               # route != 'null' ~ route,
+               TRUE ~ 'other'
+          ),
+          route = factor(route))
 
      # Get concentrations. Define this as something matching the format "mg/ml" or X mg / Y ml"), then
      # process into a numeric value (mg, units, mcg per mL). Some of the premixed bags
@@ -234,7 +240,7 @@ clean_meds <- function(df_meds,
 
      # Filter out fluids, fluid boluses, and a number of other types of medications
      # that we are not interested in
-     meds_cleaned <- df_meds %>%
+     df_meds <- df_meds %>%
           mutate(med = str_to_lower(med),
                  med = str_remove_all(med, ','),
                  med = str_remove_all(med, '\\(pf\\)'),
@@ -249,6 +255,7 @@ clean_meds <- function(df_meds,
                  med = str_remove_all(med, '\\(l-arginine\\)'),
                  med = str_remove_all(med, '\\(5 mg/ml\\)'),
                  med = str_remove_all(med, 'in nacl'),
+                 med = str_remove_all(med, '-nacl'),
                  #med = str_remove_all(med, 'in sodium chloride [:digit:]+ %'),
                  med = str_remove_all(med, 'in sodium chloride'),
                  med = str_remove_all(med, 'in dextrose'),
@@ -288,7 +295,7 @@ clean_meds <- function(df_meds,
      # Split the text "med" field into a generic and brand name.
      # Remove components of medication that are used for ionic salts
      # (i.e. for 'fentanyl citrate' remove the word citrate)
-     meds_split <- meds_cleaned %>%
+     df_meds <- df_meds %>%
           mutate(med = str_replace_all(med, '([a-z])([0-9])', '\\1 \\2'),
                  med = str_remove_all(med, '\\(.+\\)'),
                  med = str_extract(med, '^.+?(?=\\s[:digit:])|^.+'),
@@ -362,7 +369,7 @@ clean_meds <- function(df_meds,
 
 
      # Correct a few meds with confusing names
-     meds_split <- meds_split %>% mutate(
+     df_meds <- df_meds %>% mutate(
           med = str_remove_all(med, ' injection'),    # careful with this! might mess up heparin locks
           med = str_remove_all(med, 'clinician bolus prn\\: '),
           med = str_remove_all(med, 'odt'),
@@ -373,10 +380,14 @@ clean_meds <- function(df_meds,
           med = str_replace_all(med, 'methadone.+', 'methadone'),
           med = str_replace_all(med, 'methylprednisolone.+', 'methylprednisolone'),
           med = str_replace_all(med, 'midazolam.+', 'midazolam'),
+          med = str_replace_all(med, 'morphine.+', 'morphine'),
+          med = str_replace_all(med, 'quetiapine.+', 'quetiapine'),
+          med = str_replace_all(med, 'cisatracurium.+', 'cisatracurium'),
           med = str_replace_all(med, 'prednisolone.+', 'prednisolone'),
           med = str_replace_all(med, 'racepinephrine', 'racemic epi'),
           med = str_replace_all(med, 'warfarin.+', 'warfarin'),
           med = str_replace_all(med, 'hydrocortisone.+', 'hydrocortisone'),
+          med = str_replace_all(med, 'haloperidol.+', 'haloperidol'),
           med = str_remove_all(med, 'status epi'),
           med = str_trim(med)
      )
@@ -384,7 +395,7 @@ clean_meds <- function(df_meds,
      # Remove meds dosed via patch as these are really hard to account for.
      # They are basically an infusion but hard to know how much is released
      # per hour
-     med_split <- meds_split %>%
+     df_meds <- df_meds %>%
           filter(route != 'patch')
 
      # *****************************************************************************
@@ -393,7 +404,7 @@ clean_meds <- function(df_meds,
 
      # Flag infusions (defined as having a per time unit) and boluses. We will need to
      # update later for weight-based dosing
-     meds_split <- meds_split %>%
+     df_meds <- df_meds %>%
           mutate(is_infusion = if_else(str_detect(units, 'hr|hour|min|minute'), TRUE, FALSE),
                  is_bolus = !is_infusion,
                  frequency = if_else(is_infusion, NA, frequency),
@@ -404,7 +415,7 @@ clean_meds <- function(df_meds,
      # Most meds are weight based. Some are ordered adult-style, in units/hr.
      # For adult doses, we will need to back-calculate to weight based later.
      # For now, just flag meds with weight-based dosing
-     meds_split <- meds_split %>%
+     df_meds <- df_meds %>%
           mutate(dose = signif(dose, 2),
                  wt_based = if_else(str_detect(units, 'kg'), TRUE, FALSE))
 
@@ -413,13 +424,13 @@ clean_meds <- function(df_meds,
      ## *****************************************************************************
 
      # First work with infusion medications
-     meds_infusions <- meds_split %>%
+     meds_infusions <- df_meds %>%
           filter(is_infusion)
 
      # Process infusions to flag starts, stops, changes.
      # Change stopped doses to zero
      # Number each MAR administration
-     meds_infusions2 <- meds_infusions %>%
+     meds_infusions <- meds_infusions %>%
           arrange(mrn, enc_id, med, med_time) %>%
           group_by(mrn, enc_id, med) %>%
           mutate(mar_num = dense_rank(med_time)) %>%
@@ -490,18 +501,18 @@ clean_meds <- function(df_meds,
                remove_row_simple = if_else(row_number() == 1, FALSE, remove_row_simple)
           )
 
-     #' 1. Remove all of the flagged rows, and recalculate the difference in
-     #'    time for each row
-     #'        Since we set the last row for each patient to "stop" and a dose
-     #'        of zero, this means that for some patients we will lose the
-     #'        last row of med dosing. (Patients total doses will be lower than
-     #'        reality if the nurse didn't ever chart stopping the med.") This
-     #'        is ok and shouldn't be different among different patient groups.
-     #' 2. Remove all of the rows with a dose of zero (these are just markers
-     #'    for when meds were stopped).
-     #' 3. Calculate a cumulative dose for each interval, which is just the
-     #'    dose x the amount of time
-     meds_infusions3 <- meds_infusions2 %>%
+     # 1. Remove all of the flagged rows, and recalculate the difference in
+     #    time for each row
+     #        Since we set the last row for each patient to "stop" and a dose
+     #        of zero, this means that for some patients we will lose the
+     #        last row of med dosing. (Patients total doses will be lower than
+     #        reality if the nurse didn't ever chart stopping the med.") This
+     #        is ok and shouldn't be different among different patient groups.
+     # 2. Remove all of the rows with a dose of zero (these are just markers
+     #    for when meds were stopped).
+     # 3. Calculate a cumulative dose for each interval, which is just the
+     #    dose x the amount of time
+     meds_infusions <- meds_infusions %>%
           filter(!remove_row_simple) %>%
           group_by(mrn, enc_id, med) %>%
           mutate(
@@ -519,14 +530,64 @@ clean_meds <- function(df_meds,
      ## *****************************************************************************
 
      # Now process bolus doses.
-     meds_bolus <- filter(is_bolus)
+     meds_bolus <- df_meds %>% filter(is_bolus)
 
      # Only keep doses that were given
-     meds_bolus_sedatives <- meds_bolus_sedatives %>%
+     meds_bolus <- meds_bolus %>%
           filter(mar_result %in% mar_med_given) %>%
           mutate(interv_dose = dose)
 
+     ## *****************************************************************************
+     ## Combine infusions and bolus -------------------------------------------------
+     ## *****************************************************************************
 
-     return(df_meds)
+     # Stack doses and convert to either morphine or midazolam equivalents
+     stack_infuse <- meds_infusions %>%
+          select(mrn, enc_id, med, med_time, interv_dose, dose, route) %>%
+          mutate(type = 'infusion')
+
+     stack_bolus <- meds_bolus %>%
+          select(mrn, enc_id, med, med_time, interv_dose, dose, route) %>%
+          mutate(type = 'bolus')
+
+     all_doses <- bind_rows(stack_infuse, stack_bolus) %>%
+          mutate(
+               interv_dose = case_when(
+                    med == 'midazolam' & route == 'iv' ~ interv_dose,
+                    med == 'midazolam' & route == 'enteral' ~ interv_dose / 10,
+                    med == 'lorazepam' ~ interv_dose / 2,
+                    med == 'clonazepam' ~ interv_dose / 4,
+                    med == 'diazepam' ~ interv_dose * 4,
+                    med == 'morphine' & route == 'iv' ~ interv_dose,
+                    med == 'morphine' & route == 'enteral' ~ interv_dose / 3,
+                    med == 'fentanyl' ~ interv_dose / 10,
+                    med == 'hydromorphone' & route == 'iv' ~ interv_dose * 4,
+                    med == 'hydromorphone' & route == 'enteral' ~ interv_dose * 0.8,
+                    med == 'oxycodone' ~ interv_dose * 0.4,
+                    med == 'clonidine' ~ interv_dose,
+                    med == 'dexmedetomidine' ~ interv_dose,
+                    med == 'ketamine' ~ interv_dose,
+                    med == 'pentobarbital' ~ interv_dose,
+                    med == 'rocuronium' ~ interv_dose,
+                    med == 'vecuronium' ~ interv_dose * 10,
+                    med == 'cisatracurium' ~ interv_dose * 20/3,
+                    TRUE ~ interv_dose
+               )
+          ) %>%
+          arrange(mrn, enc_id, med, med_time)
+
+     # Remove magic mouthwash
+     all_doses <- all_doses %>%
+          filter(str_detect(med, 'diphenhydramine/lidocaine', negate = TRUE))
+
+     # Get a cumulative dose per patient, separated by individual drug
+     dose_per_enc_each_drug <- all_doses %>%
+          group_by(enc_id, med) %>%
+          summarize(cumul_dose = sum(dose)) %>%
+          pivot_wider(names_from = med,
+                      values_from = cumul_dose)
+
+     return(dose_per_enc_each_drug)
 
 }
+#
