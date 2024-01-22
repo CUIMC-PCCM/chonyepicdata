@@ -23,7 +23,7 @@ load_meds <- function(med_filepath,
                            col_character(),  # MRN
                            col_character(),  # PAT_ENC_CSN_ID
                            col_datetime(),   # ORDERING_DATE
-                           col_character(),  # NDC_CODE
+                           col_skip(),       # NDC_CODE
                            col_character(),  # MED_NAME
                            col_double(),     # DOSE
                            col_character(),  # DOSE_UNIT
@@ -47,7 +47,8 @@ load_meds <- function(med_filepath,
                                 delim = '|') %>%
                clean_names() %>%
                mutate(across(where(is.character), str_to_lower)) %>%
-               rename(enc_id = pat_enc_csn_id)
+               rename(enc_id = pat_enc_csn_id) %>%
+               distinct(enc_id, med_name, dose, taken_time, .keep_all = TRUE)
      })
 
      return(df_meds)

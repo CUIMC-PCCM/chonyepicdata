@@ -6,11 +6,11 @@
 \usage{
 clean_meds(
   df_meds,
-  medlist = med_str <- c("midazolam", "lorazepam", "diazepam", "clonazepam",
-    "alprazolam", "morphine", "fentanyl", "hydromorphone", "oxycodone", "clonidine",
-    "ketamine", "pentobarbital", "quetiapine", "haloperidol", "risperidone",
-    "olanzapine", "aripiprazole", "diphenhydramine", "hydroyxyzine", "rocuronium",
-    "vecuronium", "cisatracurium"),
+  medlist = c("midazolam", "lorazepam", "diazepam", "clonazepam", "alprazolam",
+    "morphine", "fentanyl", "hydromorphone", "oxycodone", "clonidine", "ketamine",
+    "pentobarbital", "quetiapine", "haloperidol", "risperidone", "olanzapine",
+    "aripiprazole", "diphenhydramine", "hydroyxyzine", "rocuronium", "vecuronium",
+    "cisatracurium", "dexmedetomidine"),
   mar_med_given = c("anesthesia volume adjustment",
     "bolus from bag (dual sign required)", "bolus from bag",
     "continue to inpatient floor", "continued from or", "continued from pre",
@@ -23,7 +23,8 @@ clean_meds(
   mar_med_stopped = c("held", "held by provider", "mar hold",
     "stopped (dual sign required)", "stopped", "stop infusion"),
   row_limit = Inf,
-  time_limits = NA
+  time_limits,
+  patient_weights
 )
 }
 \arguments{
@@ -47,10 +48,17 @@ large files.}
 \item{time_limits}{Data table of encounter IDs and time intervals during
 which medication doses should be included. The first column should be named
 'enc_id' and the second column should be formatted as time intervals using \code{\link[lubridate:interval]{lubridate::interval()}}}
+
+\item{patient_weights}{Data table of encounter IDs matched to a weight variable.
+If provided, will adjust all medications to weight-based dosing. If not provided, will
+separate output into a weight-based and non weight-based component for each medication.
+This is because some medications only have a weight-based dose recorded, and not an
+absolute dose.}
 }
 \value{
 A data frame with raw medication data. Medication name is saved in character format
-in the column 'med_name'. These should be cleaned and processed.
+in the column 'med_name'. These should be cleaned and processed. If time limits were sent in via
+\code{time_limits}, then this will be sorted by individual PICU stay
 }
 \description{
 Clean and process raw medication data loaded from Epic EHR. The majority of

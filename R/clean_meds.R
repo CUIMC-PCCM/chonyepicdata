@@ -20,10 +20,17 @@
 #' @param time_limits Data table of encounter IDs and time intervals during
 #' which medication doses should be included. The first column should be named
 #' 'enc_id' and the second column should be formatted as time intervals using [lubridate::interval()]
+#' @param patient_weights Data table of encounter IDs matched to a weight variable.
+#' If provided, will adjust all medications to weight-based dosing. If not provided, will
+#' separate output into a weight-based and non weight-based component for each medication.
+#' This is because some medications only have a weight-based dose recorded, and not an
+#' absolute dose. Other meds have an absolute dose. You can't combine these unless
+#' you also have the weight.
 #'
 #'
 #' @return A data frame with raw medication data. Medication name is saved in character format
-#' in the column 'med_name'. These should be cleaned and processed.
+#' in the column 'med_name'. These should be cleaned and processed. If time limits were sent in via
+#' \code{time_limits}, then this will be sorted by individual PICU stay
 #'
 #' @export
 clean_meds <- function(df_meds,
@@ -89,7 +96,8 @@ clean_meds <- function(df_meds,
 
                        row_limit = Inf,
 
-                       time_limits
+                       time_limits = NA,
+                       patient_weights = NA
 )
 
 {
@@ -194,10 +202,42 @@ clean_meds <- function(df_meds,
      if(exists('time_limits')) {
           tryCatch({
                intcolname <- sym(names(time_limits)[2])
+
+               # Create a row number for each PICU hospitalization
+               time_limits <- time_limits %>%
+                    group_by(enc_id) %>%
+                    mutate(picu_stay_num = row_number()) %>%
+                    ungroup()
+
+               # Only keep rows that were given during a PICU hospitalization period
+               # Then, append the number of the encounter to the end of the encounter
+               # ID so that we keep these PICU stays separate.
                df_meds <- df_meds %>%
                     inner_join(time_limits, multiple = 'all', by = 'enc_id') %>%
                     filter(med_time %within% !!intcolname) %>%
-                    select(-!!intcolname)
+                    select(-!!intcolname) %>%
+                    unite(col = 'enc_id', sep = '#', enc_id, picu_stay_num)
+          }
+          )
+     }
+
+     # Create a flag for weight-based dosing adjustments
+     use_weight_based = FALSE
+     if(!is.na(patient_weights)) {
+          tryCatch({
+               # Just keep the first weight for each patient (some patients have
+               # dosing weights updated during a hospitalization, but we are
+               # going to willfully ignore that for now.
+               patient_weights <- patient_weights %>%
+                    group_by(enc_id) %>% arrange(enc_id, weight_date) %>%
+                    slice_head(n=1) %>%
+                    ungroup
+
+               # Now bind the weights to the medication dataset
+               df_meds <- left_join(patient_weights, by = 'enc_id')
+
+               # If all this was successful, create a flag to do weight-based adjustment
+               use_weight_based = TRUE
           }
           )
      }
@@ -406,18 +446,20 @@ clean_meds <- function(df_meds,
      # update later for weight-based dosing
      df_meds <- df_meds %>%
           mutate(is_infusion = if_else(str_detect(units, 'hr|hour|min|minute'), TRUE, FALSE),
-                 is_bolus = !is_infusion,
+                 is_bolus = if_else(str_detect(frequency, 'every|prn|once') & !is_infusion, TRUE, FALSE),
                  frequency = if_else(is_infusion, NA, frequency),
                  infusion_rate = if_else(is_bolus, NA, infusion_rate)) %>%
-          mutate(dose_conc = conc*infusion_rate) %>%
-          relocate(dose_conc, .after = dose)
+          arrange(mrn, enc_id, med)
 
      # Most meds are weight based. Some are ordered adult-style, in units/hr.
      # For adult doses, we will need to back-calculate to weight based later.
      # For now, just flag meds with weight-based dosing
      df_meds <- df_meds %>%
-          mutate(dose = signif(dose, 2),
-                 wt_based = if_else(str_detect(units, 'kg'), TRUE, FALSE))
+          mutate(wt_based = if_else(str_detect(units, 'kg'), TRUE, FALSE))
+     if(use_weight_based) {
+          df_meds <- df_meds %>%
+               mutate(dose = if_else(wt_based, dose, dose / dosing_weight))
+     }
 
      ## *****************************************************************************
      ## Infusion start/stop times ---------------------------------------------------
@@ -447,13 +489,13 @@ clean_meds <- function(df_meds,
                med_stop = if_else(mar_result %in% mar_med_stopped, TRUE, FALSE),
 
                # Difference between time of this and next row
-               time_diff_next = round(as.numeric(difftime(lead(med_time), med_time, units = 'hours')), 1),
+               time_diff_next = as.numeric(difftime(lead(med_time), med_time, units = 'hours')),
 
                # Make sure the last row has a non-NA time
                time_diff_next = if_else(row_number() == n(), 0, time_diff_next),
 
                # Difference between time of this and the last row
-               time_diff_last = round(as.numeric(difftime(med_time, lag(med_time), units = 'hours')), 1),
+               time_diff_last = as.numeric(difftime(med_time, lag(med_time), units = 'hours')), 1,
 
                # Make sure the first row has a non-NA time
                time_diff_last = if_else(row_number() == 1, 0, time_diff_last),
@@ -494,7 +536,7 @@ clean_meds <- function(df_meds,
                # Simpler version -- flag for removal if the prior row was for
                # the same patient, and had the exact same med/dose, or the med was
                # not given (such as a bolus from the pump, which isn't an infusion)
-               remove_row_simple = if_else(mrn == lag(mrn) & med == lag(med) & dose == lag(dose),
+               remove_row_simple = if_else(enc_id == lag(enc_id) & med == lag(med) & dose == lag(dose),
                                            TRUE, FALSE),
 
                # Correct the first row
@@ -516,7 +558,7 @@ clean_meds <- function(df_meds,
           filter(!remove_row_simple) %>%
           group_by(mrn, enc_id, med) %>%
           mutate(
-               time_diff = round(as.numeric(difftime(lead(med_time), med_time, units = 'hours')), 1),
+               time_diff = as.numeric(difftime(lead(med_time), med_time, units = 'hours')), 1,
                time_diff = if_else(row_number() == n(), 0, time_diff)
           ) %>%
           filter(dose > 0) %>%
@@ -543,49 +585,70 @@ clean_meds <- function(df_meds,
 
      # Stack doses and convert to either morphine or midazolam equivalents
      stack_infuse <- meds_infusions %>%
-          select(mrn, enc_id, med, med_time, interv_dose, dose, route) %>%
+          select(mrn, enc_id, med, med_time, interv_dose, dose, route, wt_based) %>%
           mutate(type = 'infusion')
 
      stack_bolus <- meds_bolus %>%
-          select(mrn, enc_id, med, med_time, interv_dose, dose, route) %>%
+          select(mrn, enc_id, med, med_time, interv_dose, dose, route, wt_based) %>%
           mutate(type = 'bolus')
 
      all_doses <- bind_rows(stack_infuse, stack_bolus) %>%
-          mutate(
-               interv_dose = case_when(
-                    med == 'midazolam' & route == 'iv' ~ interv_dose,
-                    med == 'midazolam' & route == 'enteral' ~ interv_dose / 10,
-                    med == 'lorazepam' ~ interv_dose / 2,
-                    med == 'clonazepam' ~ interv_dose / 4,
-                    med == 'diazepam' ~ interv_dose * 4,
-                    med == 'morphine' & route == 'iv' ~ interv_dose,
-                    med == 'morphine' & route == 'enteral' ~ interv_dose / 3,
-                    med == 'fentanyl' ~ interv_dose / 10,
-                    med == 'hydromorphone' & route == 'iv' ~ interv_dose * 4,
-                    med == 'hydromorphone' & route == 'enteral' ~ interv_dose * 0.8,
-                    med == 'oxycodone' ~ interv_dose * 0.4,
-                    med == 'clonidine' ~ interv_dose,
-                    med == 'dexmedetomidine' ~ interv_dose,
-                    med == 'ketamine' ~ interv_dose,
-                    med == 'pentobarbital' ~ interv_dose,
-                    med == 'rocuronium' ~ interv_dose,
-                    med == 'vecuronium' ~ interv_dose * 10,
-                    med == 'cisatracurium' ~ interv_dose * 20/3,
-                    TRUE ~ interv_dose
-               )
-          ) %>%
-          arrange(mrn, enc_id, med, med_time)
+          # # This is used to convert to midazolam and morphine equivalents. Skip
+          # # it for now.
+          # mutate(
+          #      interv_dose = case_when(
+          #           med == 'midazolam' & route == 'iv' ~ interv_dose,
+          #           med == 'midazolam' & route == 'enteral' ~ interv_dose / 10,
+          #           med == 'lorazepam' ~ interv_dose / 2,
+          #           med == 'clonazepam' ~ interv_dose / 4,
+          #           med == 'diazepam' ~ interv_dose * 4,
+          #           med == 'morphine' & route == 'iv' ~ interv_dose,
+          #           med == 'morphine' & route == 'enteral' ~ interv_dose / 3,
+     #           med == 'fentanyl' ~ interv_dose / 10,
+     #           med == 'hydromorphone' & route == 'iv' ~ interv_dose * 4,
+     #           med == 'hydromorphone' & route == 'enteral' ~ interv_dose * 0.8,
+     #           med == 'oxycodone' ~ interv_dose * 0.4,
+     #           med == 'clonidine' ~ interv_dose,
+     #           med == 'dexmedetomidine' ~ interv_dose,
+     #           med == 'ketamine' ~ interv_dose,
+     #           med == 'pentobarbital' ~ interv_dose,
+     #           med == 'rocuronium' ~ interv_dose,
+     #           med == 'vecuronium' ~ interv_dose * 10,
+     #           med == 'cisatracurium' ~ interv_dose * 20/3,
+     #           TRUE ~ interv_dose
+     #      )
+     # ) %>%
+     arrange(mrn, enc_id, med, med_time)
 
      # Remove magic mouthwash
      all_doses <- all_doses %>%
           filter(str_detect(med, 'diphenhydramine/lidocaine', negate = TRUE))
 
-     # Get a cumulative dose per patient, separated by individual drug
-     dose_per_enc_each_drug <- all_doses %>%
-          group_by(enc_id, med) %>%
-          summarize(cumul_dose = sum(dose)) %>%
-          pivot_wider(names_from = med,
-                      values_from = cumul_dose)
+     # Can only calculate total dose using all medications if everything is adjusted for
+     # dosing weight. If not, we need to return separate measurements.
+     if(use_weight_based) {
+          # Get a cumulative dose per patient, separated by individual drug
+          dose_per_enc_each_drug <- all_doses %>%
+               group_by(enc_id, med) %>%
+               summarize(cumul_dose = sum(interv_dose)) %>%
+               pivot_wider(names_from = med,
+                           values_from = cumul_dose)
+     }
+
+     # Separate weight-based and non weight-based medications
+     if(!use_weight_based) {
+          # Get a cumulative dose per patient, separated by individual drug
+          dose_per_enc_each_drug <- all_doses %>%
+               mutate(wt_based_string = if_else(wt_based, 'weight_based','flat_dose')) %>%
+               select(-wt_based) %>%
+               group_by(enc_id, med, wt_based_string) %>%
+               summarize(cumul_dose = sum(interv_dose)) %>%
+               pivot_wider(id_cols = 'enc_id',
+                           names_from = c('med', 'wt_based_string'),
+                           values_from = cumul_dose,
+                           names_expand = TRUE)
+
+     }
 
      return(dose_per_enc_each_drug)
 
