@@ -54,7 +54,7 @@ load_encounters <- function(encounter_filepath,
                sex = factor(sex, levels = c('male', 'female', 'other')),
                hospital_admission_date = admission_date,
                hospital_discharge_date = discharge_date) %>%
-          select(-admission_date, -discharge_date) %>%
+          select(-admission_date, -discharge_date, -birth_date) %>%
           rename(enc_id = pat_enc_csn_id)
 
      return(df_encounters)
