@@ -95,9 +95,8 @@ clean_meds <- function(df_meds,
                                            'stop infusion'),
 
                        row_limit = Inf,
-
                        time_limits = NA,
-                       patient_weights = NA
+                       patient_weights = NULL
 )
 
 {
@@ -197,6 +196,28 @@ clean_meds <- function(df_meds,
                filter(str_detect(med, med_str))
      }
 
+     # Create a flag for weight-based dosing adjustments
+     use_weight_based = FALSE
+     if(!is.null(patient_weights) && any(!is.na(patient_weights))) {
+          tryCatch({
+               # # Just keep the first weight for each patient (some patients have
+               # # dosing weights updated during a hospitalization, but we are
+               # # going to willfully ignore that for now.
+               # patient_weights <- patient_weights %>%
+               #      group_by(enc_id) %>% arrange(enc_id, weight_date) %>%
+               #      slice_head(n=1) %>%
+               #      ungroup %>%
+               #      select(enc_id, dosing_weight)
+
+               # Now bind the weights to the medication dataset
+               df_meds <- df_meds %>% left_join(patient_weights, by = 'enc_id')
+
+               # If all this was successful, create a flag to do weight-based adjustment
+               use_weight_based = TRUE
+          }
+          )
+     }
+
      # Remove any rows that are not within the user-specified time intervals
      # for a given encounter
      if(exists('time_limits')) {
@@ -221,26 +242,6 @@ clean_meds <- function(df_meds,
           )
      }
 
-     # Create a flag for weight-based dosing adjustments
-     use_weight_based = FALSE
-     if(!is.na(patient_weights)) {
-          tryCatch({
-               # Just keep the first weight for each patient (some patients have
-               # dosing weights updated during a hospitalization, but we are
-               # going to willfully ignore that for now.
-               patient_weights <- patient_weights %>%
-                    group_by(enc_id) %>% arrange(enc_id, weight_date) %>%
-                    slice_head(n=1) %>%
-                    ungroup
-
-               # Now bind the weights to the medication dataset
-               df_meds <- left_join(patient_weights, by = 'enc_id')
-
-               # If all this was successful, create a flag to do weight-based adjustment
-               use_weight_based = TRUE
-          }
-          )
-     }
 
      # *****************************************************************************
      # String processing -----------------------------------------------------------
@@ -403,9 +404,10 @@ clean_meds <- function(df_meds,
                  med = str_remove_all(med, '(?<=^[:alnum:])'),
                  med = str_remove_all(med, 'generic'),
                  med = str_squish(med)
-          ) %>%
-          select(mrn, enc_id, med, dose, units, frequency, route, conc, conc_unit, infusion_rate,
-                 med_time, mar_result)
+          )
+          # ) %>%
+          # select(mrn, enc_id, med, dose, units, frequency, route, conc, conc_unit, infusion_rate,
+          #        med_time, mar_result)
 
 
      # Correct a few meds with confusing names
@@ -429,6 +431,7 @@ clean_meds <- function(df_meds,
           med = str_replace_all(med, 'hydrocortisone.+', 'hydrocortisone'),
           med = str_replace_all(med, 'haloperidol.+', 'haloperidol'),
           med = str_remove_all(med, 'status epi'),
+          med = str_remove_all(med, 'zzz'),
           med = str_trim(med)
      )
 
@@ -458,7 +461,7 @@ clean_meds <- function(df_meds,
           mutate(wt_based = if_else(str_detect(units, 'kg'), TRUE, FALSE))
      if(use_weight_based) {
           df_meds <- df_meds %>%
-               mutate(dose = if_else(wt_based, dose, dose / dosing_weight))
+               mutate(dose = if_else(wt_based, dose, dose/dosing_weight))
      }
 
      ## *****************************************************************************
@@ -629,7 +632,7 @@ clean_meds <- function(df_meds,
      if(use_weight_based) {
           # Get a cumulative dose per patient, separated by individual drug
           dose_per_enc_each_drug <- all_doses %>%
-               group_by(enc_id, med) %>%
+               group_by(mrn, enc_id, med) %>%
                summarize(cumul_dose = sum(interv_dose)) %>%
                pivot_wider(names_from = med,
                            values_from = cumul_dose)
@@ -641,7 +644,7 @@ clean_meds <- function(df_meds,
           dose_per_enc_each_drug <- all_doses %>%
                mutate(wt_based_string = if_else(wt_based, 'weight_based','flat_dose')) %>%
                select(-wt_based) %>%
-               group_by(enc_id, med, wt_based_string) %>%
+               group_by(mrn, enc_id, med, wt_based_string) %>%
                summarize(cumul_dose = sum(interv_dose)) %>%
                pivot_wider(id_cols = 'enc_id',
                            names_from = c('med', 'wt_based_string'),
@@ -653,4 +656,3 @@ clean_meds <- function(df_meds,
      return(dose_per_enc_each_drug)
 
 }
-#

@@ -6,15 +6,17 @@ library(lubridate)
 library(janitor)
 library(stringr)
 
+options(scipen = 3)
+
 # Load configuration files. You may need to edit the file (located in a config folder) with your own filepath.
 # Alternately you can just send in the correct filename.
 load_config(useglobal = TRUE)
 
 # load all encounters
-df_encounters <- load_encounters(paste0(data_path_chony, fname_encounter))
+df_encounters <- load_encounters(paste0(data_path, fname_encounter))
 
 # Get all ICD codes
-df_icd <- load_icd_dx(paste0(data_path_chony, fname_icd_dx))
+df_icd <- load_icd_dx(paste0(data_path, fname_icd_dx))
 
 # Find all patients with a code for Trisomy 21
 t21_mrn <- df_icd %>% filter(str_detect(icd10_code, '^Q90')) %>%
@@ -27,17 +29,17 @@ df_encounters <- df_encounters %>% filter(mrn %in% t21_mrn)
 t21_enc_id <- df_encounters %>% distinct(enc_id) %>% pull()
 
 # Now get a set of all PICU start/stop datetimes for these encounters
-df_picu_startstop <- get_picu_intervals(paste0(data_path_chony, fname_adt)) %>%
+df_picu_startstop <- get_picu_intervals(paste0(data_path, fname_adt)) %>%
      filter(enc_id %in% t21_enc_id) %>%
      arrange(mrn, enc_id, icu_start_date)
 
 # Get RASS scores for all these patients
-df_rass <- load_rass(paste0(data_path_chony, fname_sedation_delirium)) %>%
+df_rass <- load_rass(paste0(data_path, fname_sedation_delirium)) %>%
      filter(enc_id %in% t21_enc_id) %>%
      arrange(mrn, enc_id, rass_time)
 
 # Get CAPD scores for all these patients
-df_capd <- load_capd(paste0(data_path_chony, fname_sedation_delirium)) %>%
+df_capd <- load_capd(paste0(data_path, fname_sedation_delirium)) %>%
      filter(enc_id %in% t21_enc_id) %>%
      arrange(mrn, enc_id, capd_time)
 
@@ -46,7 +48,7 @@ df_icd_t21only <- df_icd %>% filter(enc_id %in% t21_enc_id) %>%
      select(mrn, enc_id, icd10_code, dx_name, dx_date)
 
 # Load medication data, just for the T21 group
-df_meds <- load_meds(paste0(data_path_chony, fname_ip_meds))
+df_meds <- load_meds(paste0(data_path, fname_ip_meds))
 df_meds <- df_meds %>% filter(mrn %in% t21_mrn)
 
 # Adjust the start/stop PICU time table to match the format needed for clean_meds()
@@ -54,12 +56,21 @@ time_limits <- df_picu_startstop %>%
      mutate(picu_intervals = interval(icu_start_date, icu_stop_date)) %>%
      select(-mrn, -icu_start_date, -icu_stop_date)
 
+# Get weights, which are required for adjusting to weight-based dosing.
+# For some reason weight is recorded in ounces, so divide by 35.274 to get kg
+df_weights <- load_vitals(paste0(data_path, fname_vitals), vitals_to_load = 'R NYC DRY (DOSING) WEIGHT') %>%
+     group_by(enc_id) %>% arrange(enc_id, vital_time) %>%
+     slice_head(n=1) %>% ungroup() %>%
+     mutate(dosing_weight = as.numeric(meas_value)/35.274) %>%
+     select(enc_id, dosing_weight)
+
 # Get medication exposures, just for the T21 cohort, only during valid PICU times, and only for fentanyl,
 # midazolam, and dexmedetomidine. Individual PICU stays will have the encounter ID, with #1, #2, #3, etc
 # appended to the end to denote which PICU stay it was
-med_exposure <- clean_meds(df_meds, medlist = c('fentanyl', 'midazolam', 'dexmedetomidine'), time_limits = time_limits)
+med_exposure <- clean_meds(df_meds, medlist = c('fentanyl', 'midazolam', 'dexmedetomidine'),
+                           time_limits = time_limits, patient_weights = df_weights)
 
-# Separate out the number of the PICU stay, and bind the medication exposure back to the encounter and MRN
+# Separate out the number of the PICU stay
 med_exposure <- med_exposure %>%
      separate_wider_delim(cols = enc_id, delim = '#', names = c('enc_id', 'picu_stay_num')) %>%
      mutate(picu_stay_num = as.integer(picu_stay_num)) %>%
@@ -68,10 +79,11 @@ med_exposure <- med_exposure %>%
 # Get the PICU start/stop dates and add in
 df_picu_startstop <- df_picu_startstop %>%
      group_by(enc_id) %>% mutate(picu_stay_num = row_number())
+
 med_exposure <- med_exposure %>%
      left_join(df_picu_startstop) %>%
      relocate(mrn, enc_id, hospital_admission_date, hospital_discharge_date, icu_start_date, icu_stop_date, picu_stay_num) %>%
-     select(-sex, dob)
+     select(-sex, -dob)
 
 # Example of how to save:
-writexl::write_xlsx(med_exposure, paste0(data_path_chony, '../output/T21_med_exposure-', today(), '.xlsx'))
+writexl::write_xlsx(med_exposure, paste0(data_path, '../output/T21_med_exposure-', today(), '.xlsx'))

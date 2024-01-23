@@ -23,8 +23,8 @@ clean_meds(
   mar_med_stopped = c("held", "held by provider", "mar hold",
     "stopped (dual sign required)", "stopped", "stop infusion"),
   row_limit = Inf,
-  time_limits,
-  patient_weights
+  time_limits = NA,
+  patient_weights = NULL
 )
 }
 \arguments{
@@ -53,7 +53,8 @@ which medication doses should be included. The first column should be named
 If provided, will adjust all medications to weight-based dosing. If not provided, will
 separate output into a weight-based and non weight-based component for each medication.
 This is because some medications only have a weight-based dose recorded, and not an
-absolute dose.}
+absolute dose. Other meds have an absolute dose. You can't combine these unless
+you also have the weight.}
 }
 \value{
 A data frame with raw medication data. Medication name is saved in character format

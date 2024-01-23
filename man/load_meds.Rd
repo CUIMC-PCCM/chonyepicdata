@@ -7,9 +7,9 @@
 load_meds(
   med_filepath,
   med_coltypes = list(col_number(), col_skip(), col_character(), col_character(),
-    col_datetime(), col_skip(), col_character(), col_double(), col_character(),
-    col_character(), col_double(), col_character(), col_character(), col_datetime(),
-    col_skip(), col_character()),
+    col_datetime(), col_character(), col_double(), col_character(), col_character(),
+    col_double(), col_character(), col_character(), col_datetime(), col_skip(),
+    col_character()),
   max_load = Inf
 )
 }

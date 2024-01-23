@@ -23,7 +23,6 @@ load_meds <- function(med_filepath,
                            col_character(),  # MRN
                            col_character(),  # PAT_ENC_CSN_ID
                            col_datetime(),   # ORDERING_DATE
-                           col_skip(),       # NDC_CODE
                            col_character(),  # MED_NAME
                            col_double(),     # DOSE
                            col_character(),  # DOSE_UNIT
@@ -38,7 +37,6 @@ load_meds <- function(med_filepath,
                       max_load = Inf)
 
 {
-
 
      suppressWarnings({
           df_meds <- read_delim(med_filepath,
