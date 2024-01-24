@@ -23,7 +23,7 @@ saveRDS(df_icd, paste0(data_path, 'icd_dx_', today(), '.rds'))
 # Now get a set of all PICU start/stop datetimes for these encounters
 df_picu_startstop <- get_picu_intervals(paste0(data_path, fname_adt)) %>%
      arrange(mrn, enc_id, icu_start_date)
-saveRDS(df_picu_startstop, paste0(data_path, 'picu_start_stop', today(), '.rds'))
+saveRDS(df_picu_startstop, paste0(data_path, 'picu_start_stop_', today(), '.rds'))
 
 # Get RASS scores for all these patients
 df_rass <- load_rass(paste0(data_path, fname_sedation_delirium)) %>%
@@ -110,4 +110,19 @@ med_exposure <- med_exposure %>%
      select(-sex, -dob)
 
 # Example of how to save:
-writexl::write_xlsx(med_exposure, paste0(data_path, '../output/T21_med_exposure-', today(), '.xlsx'))
+# writexl::write_xlsx(med_exposure, paste0(data_path, '../output/T21_med_exposure-', today(), '.xlsx'))
+
+get_rds <- function(file_path = getwd()) {
+     # Get all file paths
+     all_files <- list.files(path = file_path, pattern = "\\.rds", full.names = TRUE)
+
+     # Read all your data into a list
+     data_list <- lapply(file_paths, readRDS)
+
+     # Assign file names to list elements
+     names(data_list) <- file_names
+
+     return(data_list)
+}
+
+list2env(get_rds(data_path), envir = .GlobalEnv)
