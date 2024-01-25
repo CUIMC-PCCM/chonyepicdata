@@ -1,5 +1,8 @@
 #' load_vitals
 #'
+#' Load a pipe-delimited .txt file containing vitals signs data into the EHR. Perform
+#' minimal cleaning.
+#'
 #' @param vitals_filepath Path to the medication data
 #' @param vitals_coltypes A list of cols() specifications.
 #'   Cols specifications are things like col_integer(), col_character(), and can be found
@@ -27,6 +30,7 @@ load_vitals <- function(vitals_filepath,
 
 {
 
+     # Load in all vitals
      suppressWarnings({
           df_vitals <- read_delim(vitals_filepath,
                                   col_types = vitals_coltypes,
@@ -38,7 +42,7 @@ load_vitals <- function(vitals_filepath,
 
      })
 
-
+     # If a particular vital sign was specified, then just filter to that one
      if(!is.na(vitals_to_load))
      {
           try({

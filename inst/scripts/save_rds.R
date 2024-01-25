@@ -39,7 +39,7 @@ saveRDS(df_capd, paste0(data_path, 'capd_', today(), '.rds'))
 df_meds <- load_meds(paste0(data_path, fname_ip_meds))
 saveRDS(df_meds, paste0(data_path, 'meds_', today(), '.rds'))
 
-# Get vital signs
+# Get vital signs (takes some processing so multiple steps)
 df_vitals <- load_vitals(paste0(data_path, fname_vitals))
 
 df_weight <- df_vitals %>%
@@ -62,7 +62,19 @@ df_temp <- df_vitals %>%
      clean_names() %>%
      rename(temp_time = vital_time)
 
-df_vitals_wide <- df_vitals %>%
+df_vitals_wide <- clean_vitals(df_vitals)
+
+saveRDS(df_weight, paste0(data_path, 'weight_', today(), '.rds'))
+saveRDS(df_height, paste0(data_path, 'height_', today(), '.rds'))
+saveRDS(df_bsa, paste0(data_path, 'bsa_', today(), '.rds'))
+saveRDS(df_temp, paste0(data_path, 'temp_', today(), '.rds'))
+saveRDS(df_vitals_wide, paste0(data_path, 'vitals_', today(), '.rds'))
+
+# Get ventilator support
+df_vent <- load_vent(paste0(data_path, fname_imv))
+
+# Process to make into a wide-format dataset for simultaneously recorded data
+df_vent_wide <- df_vent %>%
      select(-common_name, -units, -cust_list_map_value) %>%
      filter(flowsheet_name %in% c('pulse',
                                   'blood pressure',
@@ -80,37 +92,6 @@ df_vitals_wide <- df_vitals %>%
      separate_wider_delim(col = blood_pressure, names = c('sbp_ni', 'dbp_ni'), delim = '/', too_few = 'align_start') %>%
      separate_wider_delim(col = r_fs_arterial_line_blood_pressure, names = c('sbp_art', 'ndbp_art'), delim = '/', too_few = 'align_start') %>%
      rename(map_ni = r_fs_map, map_art=r_fs_map_a_line, cvp = r_fs_device_cvp_mean)
-
-saveRDS(df_weight, paste0(data_path, 'weight_', today(), '.rds'))
-saveRDS(df_height, paste0(data_path, 'height_', today(), '.rds'))
-saveRDS(df_bsa, paste0(data_path, 'bsa_', today(), '.rds'))
-saveRDS(df_temp, paste0(data_path, 'temp_', today(), '.rds'))
-saveRDS(df_vitals_wide, paste0(data_path, 'vitals_', today(), '.rds'))
-
-
-# Get medication exposures, just for the T21 cohort, only during valid PICU times, and only for fentanyl,
-# midazolam, and dexmedetomidine. Individual PICU stays will have the encounter ID, with #1, #2, #3, etc
-# appended to the end to denote which PICU stay it was
-med_exposure <- clean_meds(df_meds, medlist = c('fentanyl', 'midazolam', 'dexmedetomidine'),
-                           time_limits = time_limits, patient_weights = df_weights)
-
-# Separate out the number of the PICU stay
-med_exposure <- med_exposure %>%
-     separate_wider_delim(cols = enc_id, delim = '#', names = c('enc_id', 'picu_stay_num')) %>%
-     mutate(picu_stay_num = as.integer(picu_stay_num)) %>%
-     left_join(df_encounters)
-
-# Get the PICU start/stop dates and add in
-df_picu_startstop <- df_picu_startstop %>%
-     group_by(enc_id) %>% mutate(picu_stay_num = row_number())
-
-med_exposure <- med_exposure %>%
-     left_join(df_picu_startstop) %>%
-     relocate(mrn, enc_id, hospital_admission_date, hospital_discharge_date, icu_start_date, icu_stop_date, picu_stay_num) %>%
-     select(-sex, -dob)
-
-# Example of how to save:
-# writexl::write_xlsx(med_exposure, paste0(data_path, '../output/T21_med_exposure-', today(), '.xlsx'))
 
 get_rds <- function(file_path = getwd()) {
      # Get all file paths
