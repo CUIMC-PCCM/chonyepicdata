@@ -88,5 +88,8 @@ clean_vent <- function(df_vent) {
      df_vent_wide <- df_vent_wide %>%
           mutate(across(numeric_vars, as.numeric))
 
+     # Remove any row where all values are NA
+     df_vent_wide <- df_vent_wide %>% filter(if_any(3:dim(df_vent_wide)[2], ~ !is.na(.)))
+
      return(df_vent_wide)
 }

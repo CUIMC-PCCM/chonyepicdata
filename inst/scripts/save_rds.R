@@ -72,7 +72,7 @@ saveRDS(df_vitals_wide, paste0(data_path, 'vitals_', today(), '.rds'))
 
 # Get ventilator support
 df_vent <- load_vent(paste0(data_path_chony, fname_imv))
-
 df_vent_wide <- clean_vent(df_vent)
+saveRDS(df_vent_wide, paste0(data_path_chony, 'vent_wide_', today(), '.rds'))
 
 list2env(get_rds(file_path = data_path_chony), envir = .GlobalEnv)
