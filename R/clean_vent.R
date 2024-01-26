@@ -48,6 +48,7 @@ clean_vent <- function(df_vent) {
                flowsheet_measure_name == 'r ip vent mode' ~	'vent_mode',
                flowsheet_measure_name == 'r fs resp ventilator patient' ~	'vent_patient',
                flowsheet_measure_name == 'r nyc ip rt $$ (adult) vent' ~	'vent_status',
+               flowsheet_measure_name == 'nyc ip rt r vent type' ~ 'vent_type',
                flowsheet_measure_name == 'nyc ip rt r niv tidal vol exhaled' ~	'vt_e'
           )) %>%
           filter(!is.na(vent_meas_name) & !is.na(measure_value)) %>%
