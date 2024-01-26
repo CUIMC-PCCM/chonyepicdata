@@ -38,6 +38,9 @@ load_meds <- function(med_filepath,
 
 {
 
+     # Required to avoid warnings when building package
+     pat_enc_csn_id <- enc_id <- med_name <- dose <- taken_time <-  NULL
+
      suppressWarnings({
           df_meds <- read_delim(med_filepath,
                                 col_types = med_coltypes,

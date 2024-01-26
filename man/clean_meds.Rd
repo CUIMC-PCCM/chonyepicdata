@@ -32,7 +32,7 @@ clean_meds(
 doses, concentrations, and rates.}
 
 \item{medlist}{An array of characters that will be matched to determine
-medication names to keep. Partial matches can be used according to \link\link{stringr} rules.
+medication names to keep. Partial matches can be used according to \link{stringr} rules.
 Pass \code{NA} if you you don't want to filter at all.}
 
 \item{mar_med_given}{An array of characters that specify whether a medication

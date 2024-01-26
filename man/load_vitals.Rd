@@ -29,5 +29,6 @@ If this isn't working well you can send in col_guess().}
 A data frame with vital signs (and other related flowsheet data) loaded.
 }
 \description{
-load_vitals
+Load a pipe-delimited .txt file containing vitals signs data into the EHR. Perform
+minimal cleaning.
 }

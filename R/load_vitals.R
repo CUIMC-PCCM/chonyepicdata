@@ -30,6 +30,9 @@ load_vitals <- function(vitals_filepath,
 
 {
 
+     # Required to avoid warnings when building package
+     pat_enc_csn_id <- recorded_time <- flowsheet_name <- NULL
+
      # Load in all vitals
      suppressWarnings({
           df_vitals <- read_delim(vitals_filepath,

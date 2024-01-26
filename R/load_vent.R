@@ -28,6 +28,9 @@ load_vent <- function(vent_filepath,
 
 {
 
+     # Required to avoid warnings when building package
+     pat_enc_csn_id <- recorded_time <- flowsheet_name <- NULL
+
      # Load in all vent data
      suppressWarnings({
           df_vent <- read_delim(vent_filepath,

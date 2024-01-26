@@ -1,7 +1,8 @@
 #' clean_vent
 #'
 #' Take ventilator/respiratory file loaded by \link{load_vent}. Clean it a little,
-#' keep standard valuable rows, and put it into wide format.
+#' keep standard valuable rows, and put it into wide format so that each timestamp has
+#' all concurrently-recorded values.
 #'
 #' @param df_vent A long-form data frame of vent/respiratory settings and measurements
 #'
@@ -10,6 +11,11 @@
 #'
 clean_vent <- function(df_vent) {
 
+     # Required to avoid warnings when building package
+     cpap_rt <- cpap_level <- mrn <- measurement_name <- vent_meas_name <-
+          flowsheet_measure_name <- measure_value  <-  NULL
+
+     # Categorize useful data and get rid of the rest
      df_vent_wide <- df_vent %>%
           select(-measurement_name) %>%
           mutate(vent_meas_name = case_when(
@@ -22,7 +28,7 @@ clean_vent <- function(df_vent) {
                flowsheet_measure_name == 'nyc ip r fs vent press support set above peep' ~	'delta_p',
                flowsheet_measure_name == 'nyc ip rt r niv expiratory positive airway pressure (epap)' ~	'epap',
                flowsheet_measure_name == 'nyc ip r fs rt etco2' ~	'etco2',
-               flowsheet_measure_name == 'fio2' ~	'fio2',
+               flowsheet_measure_name == 'r fio2' ~	'fio2',
                flowsheet_measure_name == 'r fs ip vent hertz (set)' ~	'freq_hfov',
                flowsheet_measure_name == 'nyc ip rt r $$ high flow nasal' ~	'hfnc_status',
                flowsheet_measure_name == 'nyc ip rt r niv inspiratory positive airway pressure (ipap)' ~	'ipap',
@@ -57,5 +63,30 @@ clean_vent <- function(df_vent) {
           mutate(cpap = if_else(is.na(cpap_level), cpap_rt, cpap_level)) %>%
           select(-cpap_level, -cpap_rt)
 
-     return(df_vitals_wide)
+     numeric_vars <- c('amp_hfov',
+                       'bipap_rate',
+                       'cpap',
+                       'delta_p',
+                       'epap',
+                       'etco2',
+                       'fio2',
+                       'freq_hfov',
+                       'ipap',
+                       'itime_niv',
+                       'itime_vent',
+                       'map_vent',
+                       'o2_flow_rate',
+                       'p_plat',
+                       'peep',
+                       'pip_meas',
+                       'rr_vent_meas',
+                       'rr_vent_set',
+                       'pip_set',
+                       'vt_e')
+
+     # Convert columns to numeric variables where able
+     df_vent_wide <- df_vent_wide %>%
+          mutate(across(numeric_vars, as.numeric))
+
+     return(df_vent_wide)
 }

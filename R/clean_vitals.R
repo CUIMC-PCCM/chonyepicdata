@@ -12,6 +12,12 @@
 #'
 clean_vitals <- function(df_vitals) {
 
+     # Required to avoid warnings when building package
+     common_name <- cust_list_map_value <- flowsheet_name <- meas_value <-
+          blood_pressure <- r_fs_arterial_line_blood_pressure <- r_fs_map <-
+          r_fs_map_a_line <- r_fs_device_cvp_mean <- pulse_oximetry <-
+          pulse <- respirations  <-  NULL
+
      df_vitals_wide <- df_vitals %>%
           select(-common_name, -units, -cust_list_map_value) %>%
           filter(flowsheet_name %in% c('pulse',
@@ -27,8 +33,8 @@ clean_vitals <- function(df_vitals) {
                       names_from = flowsheet_name,
                       values_from = meas_value) %>%
           clean_names() %>%
-          separate_wider_delim(col = blood_pressure, names = c('sbp_ni', 'dbp_ni'), delim = '/', too_few = 'align_start') %>%
-          separate_wider_delim(col = r_fs_arterial_line_blood_pressure, names = c('sbp_art', 'ndbp_art'), delim = '/', too_few = 'align_start') %>%
+          separate_wider_delim(cols = blood_pressure, names = c('sbp_ni', 'dbp_ni'), delim = '/', too_few = 'align_start') %>%
+          separate_wider_delim(cols = r_fs_arterial_line_blood_pressure, names = c('sbp_art', 'ndbp_art'), delim = '/', too_few = 'align_start') %>%
           rename(map_ni = r_fs_map,
                  map_art=r_fs_map_a_line,
                  cvp = r_fs_device_cvp_mean,

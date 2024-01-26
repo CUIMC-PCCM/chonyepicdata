@@ -8,7 +8,7 @@
 #' @param df_meds Medication datafile. Must have columns with medication names,
 #' doses, concentrations, and rates.
 #' @param medlist An array of characters that will be matched to determine
-#' medication names to keep. Partial matches can be used according to \link[stringr] rules.
+#' medication names to keep. Partial matches can be used according to \link{stringr} rules.
 #' Pass \code{NA} if you you don't want to filter at all.
 #' @param mar_med_given An array of characters that specify whether a medication
 #' was actually given to the patient. Default values are provided. Rows that
@@ -101,6 +101,14 @@ clean_meds <- function(df_meds,
 
 {
 
+     # Required to avoid warnings when building package
+     med_name <- result <- dose_unit <- taken_time <- infusion_rate <- mar_result <-
+          dose <- med <- enc_id <- med_time <- picu_stay_num <- route <- conc <-
+          conc_num <- conc_denom <- conc_unit <- frequency <- is_infusion <- is_bolus <-
+          wt_based <- dosing_weight <- mar_num <- time_diff_next <- time_diff_last <-
+          med_stop <- med_change <- med_given <- med_start <- remove_row_simple <-
+          time_diff <- interv_dose <- cumul_dose <- wt_based_string <- mrn <-  NULL
+
      # *****************************************************************************
      # Additional definitions ------------------------------------------------------
      # *****************************************************************************
@@ -137,7 +145,7 @@ clean_meds <- function(df_meds,
                              'sublingual',
                              'lozenge'
      )
-     enteral_med_string <- str_flatten(enteral_med_string, '|')
+     enteral_med_string <- stringr::str_flatten(enteral_med_string, '|')
 
      # Create a character array of IV medications
      iv_med_string <- c(
@@ -162,7 +170,7 @@ clean_meds <- function(df_meds,
           'nfusion',
           'dexmedetomidine'
      )
-     iv_med_string <- str_flatten(iv_med_string, '|')
+     iv_med_string <- stringr::str_flatten(iv_med_string, '|')
 
      # *****************************************************************************
      # Initial cleanup -------------------------------------------------------------
@@ -191,7 +199,7 @@ clean_meds <- function(df_meds,
      # Remove any rows that do not match the list of medication names (if it
      # was provided)
      if(!all(is.na(medlist))) {
-          med_str <- str_flatten(medlist, collapse = '|')
+          med_str <- stringr::str_flatten(medlist, collapse = '|')
           df_meds <- df_meds %>%
                filter(str_detect(med, med_str))
      }
@@ -237,7 +245,7 @@ clean_meds <- function(df_meds,
                     inner_join(time_limits, multiple = 'all', by = 'enc_id') %>%
                     filter(med_time %within% !!intcolname) %>%
                     select(-!!intcolname) %>%
-                    unite(col = 'enc_id', sep = '#', enc_id, picu_stay_num)
+                    tidyr::unite(col = 'enc_id', sep = '#', enc_id, picu_stay_num)
           }
           )
      }
@@ -478,7 +486,7 @@ clean_meds <- function(df_meds,
      meds_infusions <- meds_infusions %>%
           arrange(mrn, enc_id, med, med_time) %>%
           group_by(mrn, enc_id, med) %>%
-          mutate(mar_num = dense_rank(med_time)) %>%
+          mutate(mar_num = dplyr::dense_rank(med_time)) %>%
           ungroup() %>%
           group_by(mrn, enc_id, med) %>%
           mutate(
@@ -492,10 +500,10 @@ clean_meds <- function(df_meds,
                med_stop = if_else(mar_result %in% mar_med_stopped, TRUE, FALSE),
 
                # Difference between time of this and next row
-               time_diff_next = as.numeric(difftime(lead(med_time), med_time, units = 'hours')),
+               time_diff_next = as.numeric(difftime(dplyr::lead(med_time), med_time, units = 'hours')),
 
                # Make sure the last row has a non-NA time
-               time_diff_next = if_else(row_number() == n(), 0, time_diff_next),
+               time_diff_next = if_else(row_number() == dplyr::n(), 0, time_diff_next),
 
                # Difference between time of this and the last row
                time_diff_last = as.numeric(difftime(med_time, lag(med_time), units = 'hours')), 1,
@@ -504,20 +512,20 @@ clean_meds <- function(df_meds,
                time_diff_last = if_else(row_number() == 1, 0, time_diff_last),
 
                # Meds are stopped if nothing was charted for >24 hours
-               # med_stop = if_else( (mrn == lead(mrn)) & (time_diff_last > 24), TRUE, med_stop),
+               # med_stop = if_else( (mrn == dplyr::lead(mrn)) & (time_diff_last > 24), TRUE, med_stop),
 
                # Meds are always stopped at the last data entry per patient
                # (even if it was still charted as being given)
-               # med_stop = if_else( mrn != lead(mrn), TRUE, med_stop),
+               # med_stop = if_else( mrn != dplyr::lead(mrn), TRUE, med_stop),
 
                # Correct the last row so it is non-NA
-               med_stop = if_else( row_number() == n(), TRUE, med_stop),
+               med_stop = if_else( row_number() == dplyr::n(), TRUE, med_stop),
 
                # Meds are changed if the next dose is different from this dose (for the same patient)
-               med_change = if_else((dose != lead(dose)), TRUE, FALSE),
+               med_change = if_else((dose != dplyr::lead(dose)), TRUE, FALSE),
 
                # Correct the last row so it is non-NA
-               med_change = if_else(row_number() == n(), FALSE, med_change),
+               med_change = if_else(row_number() == dplyr::n(), FALSE, med_change),
 
                # Dose is zero if the med was stopped
                dose = if_else(med_stop, 0, dose),
@@ -561,8 +569,8 @@ clean_meds <- function(df_meds,
           filter(!remove_row_simple) %>%
           group_by(mrn, enc_id, med) %>%
           mutate(
-               time_diff = as.numeric(difftime(lead(med_time), med_time, units = 'hours')), 1,
-               time_diff = if_else(row_number() == n(), 0, time_diff)
+               time_diff = as.numeric(difftime(dplyr::lead(med_time), med_time, units = 'hours')), 1,
+               time_diff = if_else(row_number() == dplyr::n(), 0, time_diff)
           ) %>%
           filter(dose > 0) %>%
           mutate(

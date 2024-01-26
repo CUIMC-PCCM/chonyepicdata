@@ -13,15 +13,15 @@ options(scipen = 3)
 load_config(useglobal = TRUE)
 
 # load all encounters
-df_encounters <- load_encounters(paste0(data_path, fname_encounter))
-saveRDS(df_encounters, paste0(data_path, 'encounters_', today(), '.rds'))
+df_encounters <- load_encounters(paste0(data_path_chony, fname_encounter))
+saveRDS(df_encounters, paste0(data_path_chony, 'encounters_', today(), '.rds'))
 
 # Get all ICD codes
-df_icd <- load_icd_dx(paste0(data_path, fname_icd_dx))
-saveRDS(df_icd, paste0(data_path, 'icd_dx_', today(), '.rds'))
+df_icd <- load_icd_dx(paste0(data_path_chony, fname_icd_dx))
+saveRDS(df_icd, paste0(data_path_chony, 'icd_dx_', today(), '.rds'))
 
 # Now get a set of all PICU start/stop datetimes for these encounters
-df_picu_startstop <- get_picu_intervals(paste0(data_path, fname_adt)) %>%
+df_picu_startstop <- get_picu_intervals(paste0(data_path_chony, fname_adt)) %>%
      arrange(mrn, enc_id, icu_start_date)
 saveRDS(df_picu_startstop, paste0(data_path, 'picu_start_stop_', today(), '.rds'))
 
@@ -71,39 +71,8 @@ saveRDS(df_temp, paste0(data_path, 'temp_', today(), '.rds'))
 saveRDS(df_vitals_wide, paste0(data_path, 'vitals_', today(), '.rds'))
 
 # Get ventilator support
-df_vent <- load_vent(paste0(data_path, fname_imv))
+df_vent <- load_vent(paste0(data_path_chony, fname_imv))
 
-# Process to make into a wide-format dataset for simultaneously recorded data
-df_vent_wide <- df_vent %>%
-     select(-common_name, -units, -cust_list_map_value) %>%
-     filter(flowsheet_name %in% c('pulse',
-                                  'blood pressure',
-                                  'respirations',
-                                  'pulse oximetry',
-                                  'r fs arterial line blood pressure',
-                                  'r fs map',
-                                  'r fs map a-line',
-                                  'r fs device cvp mean')) %>%
-     filter(!is.na(meas_value) & !is.null(meas_value) & !(meas_value == 'null')) %>%
-     pivot_wider(id_cols = c('enc_id', 'mrn', 'vital_time'),
-                 names_from = flowsheet_name,
-                 values_from = meas_value) %>%
-     clean_names() %>%
-     separate_wider_delim(col = blood_pressure, names = c('sbp_ni', 'dbp_ni'), delim = '/', too_few = 'align_start') %>%
-     separate_wider_delim(col = r_fs_arterial_line_blood_pressure, names = c('sbp_art', 'ndbp_art'), delim = '/', too_few = 'align_start') %>%
-     rename(map_ni = r_fs_map, map_art=r_fs_map_a_line, cvp = r_fs_device_cvp_mean)
+df_vent_wide <- clean_vent(df_vent)
 
-get_rds <- function(file_path = getwd()) {
-     # Get all file paths
-     all_files <- list.files(path = file_path, pattern = "\\.rds", full.names = TRUE)
-
-     # Read all your data into a list
-     data_list <- lapply(file_paths, readRDS)
-
-     # Assign file names to list elements
-     names(data_list) <- file_names
-
-     return(data_list)
-}
-
-list2env(get_rds(data_path), envir = .GlobalEnv)
+list2env(get_rds(file_path = data_path_chony), envir = .GlobalEnv)
