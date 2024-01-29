@@ -113,7 +113,32 @@ get_imv_startstop <- function(df_vent_wide) {
           filter(if_any(c('vent_active', 'vent_inactive'), ~ !is.na(.)))
 
      #
+     df_vent_wide3 <- df_vent_wide2 %>%
+          mutate(vent_onoff = case_when(vent_active ~ TRUE,
+                                        vent_inactive ~ FALSE,
+                                        TRUE ~ NA)) %>%
+          group_by(enc_id) %>%
+          filter(vent_onoff != lead(vent_onoff)) %>%
+          mutate(timetonext = as.duration(interval(vent_meas_time, lead(vent_meas_time))))
 
+
+     # Create a new variable indicating change in vent_onoff
+     df_vent_wide3 <- df_vent_wide2 %>%
+          mutate(vent_onoff = case_when(vent_active ~ TRUE,
+                                        vent_inactive ~ FALSE,
+                                        TRUE ~ NA)) %>%
+          filter(!is.na(vent_onoff)) %>%
+          group_by(enc_id) %>%
+          mutate(
+               vent_change = vent_onoff != lag(vent_onoff, default = first(vent_onoff)),
+               vent_episode = cumsum(vent_change | (vent_onoff & !lag(vent_onoff, default = first(vent_onoff)))) * 1) %>%
+          ungroup() %>%
+          filter(vent_onoff) %>%
+          group_by(enc_id, vent_episode) %>%
+          summarize(
+               vent_time_start = min(vent_meas_time),
+               vent_time_stop = max(vent_meas_time)
+          )
 
 
 
