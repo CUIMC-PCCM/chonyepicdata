@@ -3,6 +3,7 @@
 export(clean_meds)
 export(clean_vent)
 export(clean_vitals)
+export(get_imv_startstop)
 export(get_picu_intervals)
 export(get_rds)
 export(load_capd)

@@ -13,7 +13,7 @@ options(scipen = 3)
 load_config(useglobal = TRUE)
 
 # load all encounters
-df_encounters <- load_encounters(paste0(data_path_chony, fname_encounter))
+df_encounters <- load_encounters(paste0(data_path, fname_encounter))
 saveRDS(df_encounters, paste0(data_path_chony, 'encounters_', today(), '.rds'))
 
 # Get all ICD codes
@@ -71,11 +71,15 @@ saveRDS(df_temp, paste0(data_path, 'temp_', today(), '.rds'))
 saveRDS(df_vitals_wide, paste0(data_path, 'vitals_', today(), '.rds'))
 
 # Get ventilator support
-df_vent <- load_vent(paste0(data_path_chony, fname_imv))
+df_vent <- load_vent(paste0(data_path, fname_imv))
 df_vent_wide <- clean_vent(df_vent)
-saveRDS(df_vent_wide, paste0(data_path_chony, 'vent_wide_', today(), '.rds'))
-df_vent_wide <- readRDS(paste0(data_path, 'vent_wide_2024-01-26.rds'))
+df_vent_episodes <- get_imv_startstop(df_vent_wide)
 
+saveRDS(df_vent_wide, paste0(data_path_chony, 'vent_wide_', today(), '.rds'))
+saveRDS(df_vent_episodes, paste0(data_path_chony, 'vent_episodes_', today(), '.rds'))
+
+
+df_vent_wide <- readRDS(paste0(data_path, 'vent_wide_2024-01-26.rds'))
 list2env(get_rds(file_path = data_path_chony), envir = .GlobalEnv)
 
 

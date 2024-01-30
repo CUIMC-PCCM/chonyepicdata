@@ -81,17 +81,26 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
      # vc
 
      # First limit to just variables we will use to define an active ventilator
-     df_vent_wide2 <- df_vent_wide %>%
-          select(enc_id, vent_meas_time, ends_with('status'), o2_deliv_method, vent_mode, vent_type, peep) %>%
+     df_vent_wide <- df_vent_wide %>%
+          select(enc_id,
+                 vent_meas_time,
+                 ends_with('status'),
+                 o2_deliv_method,
+                 vent_mode,
+                 niv_mode,
+                 vent_type,
+                 lda_airway,
+                 peep) %>%
           arrange(enc_id, vent_meas_time)
 
      # Determine whether a ventilator is active or inactive at any given time
      # Remove any areas where there is no data
-     df_vent_wide3 <- df_vent_wide2 %>%
+     df_vent_wide <- df_vent_wide %>%
           mutate(
                vent_active = case_when(
                     vent_status %in% c('continued', 'started') ~ TRUE,
                     vent_type == 'invasive' ~ TRUE,
+                    lda_airway == 'endotracheal tube' ~ TRUE,
                     o2_deliv_method %in% c('endotracheal tube', 'nasotreacheal tube', 'ventilator', 't-piece') ~ TRUE,
                     vent_mode %in% c('a/c',
                                      'aprv',
@@ -145,17 +154,34 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
                     bipap_status %in% c('started', 'continued') ~ TRUE,
                     bcpap_status %in% c('started', 'continued') ~ TRUE),
                trach_active = case_when(
-                    o2_deliv_method %in% c('trach collar mist', 'trach mask', 'trach tube', 'transtracheal catheter') ~ TRUE)
+                    o2_deliv_method %in% c('trach collar mist', 'trach mask', 'trach tube', 'transtracheal catheter') ~ TRUE,
+                    lda_airway == 'tracheostomy' ~ TRUE
+               )
           ) %>%
           # select(enc_id, vent_meas_time, vent_active, vent_inactive) %>%
           filter(if_any(c('vent_active', 'vent_inactive'), ~ !is.na(.)))
+
+     trach_enc_id <- df_vent_wide %>%
+          filter(trach_active) %>%
+          group_by(enc_id) %>%
+          mutate(first_trach_datetime = min(vent_meas_time)) %>%
+          ungroup() %>%
+          select(enc_id, first_trach_datetime) %>%
+          distinct()
+
+     # Remove a few weird edge cases
+     df_vent_wide <- df_vent_wide %>%
+          mutate(vent_active = case_when(
+               !is.na(niv_mode) & !(niv_mode %in% c('standby', 'null')) & o2_deliv_method == 'ventilator' ~ FALSE,
+               TRUE ~ vent_active
+          ))
 
      # Create a new variable indicating change in vent_onoff,
      # and another that will flag each episode of ventilation.
      # For some reason the variable vent_episode sometimes jumps numbers,
      # but it increases monotonically so it can be adjusted at the end to make sure it
      # increases in +1 increments.
-     df_vent_wide4 <- df_vent_wide3 %>%
+     df_vent_wide <- df_vent_wide %>%
           mutate(vent_onoff = case_when(vent_active ~ TRUE,
                                         vent_inactive ~ FALSE,
                                         TRUE ~ NA)) %>%
@@ -164,15 +190,17 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
           mutate(
                vent_change = vent_onoff != lag(vent_onoff, default = first(vent_onoff)),
                vent_episode = cumsum(vent_change) + 1
-               # vent_episode = if_else(vent_onoff, cumsum(vent_change & vent_onoff)+1, NA)
           ) %>%
           ungroup()
+
+     # Back this up for a later merge
+     df_vent_wide_for_merge <- df_vent_wide
 
      # Get start/stop times for each episode of IMV.
      # Need to adjust the stop time for each episode so that it is actually the
      # start time of the "next" episode (it ends when the new one begins)
      # Finally, remove all non-vented times
-     df_vent_wide5 <- df_vent_wide4 %>%
+     df_vent_wide <- df_vent_wide %>%
           group_by(enc_id, vent_episode) %>%
           # filter(vent_onoff) %>%
           summarize(
@@ -180,50 +208,30 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
                vent_time_stop = max(vent_meas_time)
           ) %>%
           ungroup() %>%
-          left_join(df_vent_wide4, join_by('enc_id', 'vent_time_start' == 'vent_meas_time', 'vent_episode')) %>%
+          left_join(df_vent_wide_for_merge, join_by('enc_id', 'vent_time_start' == 'vent_meas_time', 'vent_episode')) %>%
           select(enc_id, vent_episode, vent_onoff, vent_time_start, vent_time_stop) %>%
           group_by(enc_id) %>%
           mutate(vent_time_stop = lead(vent_time_start, default = last(vent_time_stop))) %>%
           ungroup() %>%
-          filter(vent_onoff)
-
-     # Get a duration of time for each episode
-     # For time durations less than min_imv_time (defualt 2),
-     # remove these episodes. Paste together episodes that were made consecutive
-     # by removing other episodes. Then re-calculate durations
-     df_vent_wide6 <- df_vent_wide5 %>%
-          group_by(enc_id) %>%
           arrange(enc_id, vent_time_start) %>%
-          mutate(
-               time_dur = as.duration(interval(vent_time_start, vent_time_stop))
-          ) %>%
-          filter(time_dur >= hours(min_imv_time)) %>%
-          rowwise() %>%
-          mutate(FLAG_COL = if_else((lead(vent_time_stop) - vent_time_stop)/dhours(min_imv_time) < min_imv_time, TRUE, FALSE),
-                 vent_time_stop_new = if_else((lead(vent_time_stop) - vent_time_stop)/dhours(min_imv_time) < min_imv_time, lead(vent_time_stop), vent_time_stop, vent_time_stop),
-                 time_dur_new = as.duration(interval(vent_time_start, vent_time_stop)))
+          mutate(timediff = as.duration(vent_time_stop - vent_time_start)) %>%
+          filter(vent_onoff) %>% # This can be removed to also add non-vented times
+          select(-vent_onoff)
 
-     # # Get a duration of time for each episode
-     # # For time durations less than min_imv_time (defualt 2),
-     # # remove these episodes. Paste together episodes that were made consecutive
-     # # by removing other episodes. Then re-calculate durations
-     # df_vent_wide6 <- df_vent_wide5 %>%
-     #      group_by(enc_id) %>%
-     #      arrange(enc_id, vent_time_start) %>%
-     #      mutate(
-     #           time_dur = as.duration(interval(vent_time_start, vent_time_stop)),
-     #           invalid_episode = time_dur < hours(min_imv_time)
-     #      ) %>%
-     #      mutate(
-     #           vent_time_stop = if_else(invalid_episode, lead(vent_time_stop), vent_time_stop)
-     #      ) %>%
-     #      fill(vent_time_stop, .direction = "up")
+     # Reorganize so that the episodes of ventilation are numbered {1, 2, ..., k}
+     # for each ENC_ID
+     df_vent_wide <- df_vent_wide %>%
+          group_by(enc_id) %>%
+          arrange(enc_id, vent_episode) %>%
+          mutate(vent_episode = row_number(vent_episode)) %>%
+          ungroup()
+
+     # Add in whether or not the patient had a tracheostomy, and if so, when
+     # it was first recorded in the record for that encounter
+     df_vent_wide <- df_vent_wide %>%
+          left_join(trach_enc_id)
 
 
-     filter(!invalid_episode) %>%
-          mutate(vent_episode = dense_rank(vent_episode)) %>%
-          ungroup() %>%
-          select(-invalid_episode)
 
 
 

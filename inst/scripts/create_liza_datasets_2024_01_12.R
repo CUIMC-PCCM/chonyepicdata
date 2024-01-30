@@ -85,5 +85,19 @@ med_exposure <- med_exposure %>%
      relocate(mrn, enc_id, hospital_admission_date, hospital_discharge_date, icu_start_date, icu_stop_date, picu_stay_num) %>%
      select(-sex, -dob)
 
+# Get ventilator data and just limit to patient encounters we are interested in
+df_vent <- load_vent(paste0(data_path, fname_imv))
+df_vent <- df_vent %>% filter(enc_id %in% t21_enc_id)
+df_vent_wide <- clean_vent(df_vent)
+df_vent_episodes <- get_imv_startstop(df_vent_wide)
+by <- join_by(enc_id, within(x$vent_time_start, x$vent_time_stop, y$icu_start_date, y$icu_stop_date))
+df_vent_episodes <- left_join(df_vent_episodes, df_picu_startstop, by) %>%
+     inner_join(df_encounters, by = c('mrn', 'enc_id')) %>%
+     select(mrn, enc_id, hospital_admission_date, hospital_discharge_date, icu_start_date, icu_stop_date,
+            vent_episode, vent_time_start, vent_time_stop, timediff, first_trach_datetime)
+
+saveRDS(df_vent_episodes, paste0(data_path, 'vent_episodes_', today(), '.rds'))
+writexl::write_xlsx(df_vent_episodes, paste0(data_path, 'vent_episodes_', today(), '.xlsx'))
+
 # Example of how to save:
 writexl::write_xlsx(med_exposure, paste0(data_path, '../output/T21_med_exposure-', today(), '.xlsx'))
