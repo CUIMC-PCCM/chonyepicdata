@@ -97,29 +97,6 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
      # Remove any areas where there is no data
      df_vent_wide <- df_vent_wide %>%
           mutate(
-               vent_active = case_when(
-                    vent_status %in% c('continued', 'started') ~ TRUE,
-                    vent_type == 'invasive' ~ TRUE,
-                    lda_airway == 'endotracheal tube' ~ TRUE,
-                    o2_deliv_method %in% c('endotracheal tube', 'nasotreacheal tube', 'ventilator', 't-piece') ~ TRUE,
-                    vent_mode %in% c('a/c',
-                                     'aprv',
-                                     'hfov',
-                                     'hfpv',
-                                     'nava',
-                                     'pc',
-                                     'pc-psv/vg',
-                                     'pc/simv/vg/ps',
-                                     'prvc',
-                                     'ps',
-                                     # 'ps/cpap',
-                                     'simv',
-                                     'simv-pc',
-                                     'simv-prvc',
-                                     'simv-vc',
-                                     'vc') ~ TRUE
-                    # peep > 0 ~ TRUE  # Can't use this - RTs frequently record PEEP as CPAP and vice versa
-               ),
                vent_inactive = case_when(
                     vent_status == 'stopped' ~ TRUE,
                     vent_type == 'niv' ~ TRUE,
@@ -153,6 +130,29 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
                     hfnc_status %in% c('started', 'continued') ~ TRUE,
                     bipap_status %in% c('started', 'continued') ~ TRUE,
                     bcpap_status %in% c('started', 'continued') ~ TRUE),
+               vent_active = case_when(
+                    vent_status %in% c('started', 'continued') & !vent_inactive ~ TRUE, # vent_status is sometimes started/continued for CPAP or BiPAP via a vent
+                    vent_type == 'invasive' ~ TRUE,
+                    lda_airway == 'endotracheal tube' ~ TRUE,
+                    o2_deliv_method %in% c('endotracheal tube', 'nasotreacheal tube', 'ventilator', 't-piece') ~ TRUE,
+                    vent_mode %in% c('a/c',
+                                     'aprv',
+                                     'hfov',
+                                     'hfpv',
+                                     'nava',
+                                     'pc',
+                                     'pc-psv/vg',
+                                     'pc/simv/vg/ps',
+                                     'prvc',
+                                     'ps',
+                                     # 'ps/cpap',
+                                     'simv',
+                                     'simv-pc',
+                                     'simv-prvc',
+                                     'simv-vc',
+                                     'vc') ~ TRUE
+                    # peep > 0 ~ TRUE  # Can't use this - RTs frequently record PEEP as CPAP and vice versa
+               ),
                trach_active = case_when(
                     o2_deliv_method %in% c('trach collar mist', 'trach mask', 'trach tube', 'transtracheal catheter') ~ TRUE,
                     lda_airway == 'tracheostomy' ~ TRUE
@@ -161,6 +161,7 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
           # select(enc_id, vent_meas_time, vent_active, vent_inactive) %>%
           filter(if_any(c('vent_active', 'vent_inactive'), ~ !is.na(.)))
 
+     # Save tracheostomy encounters for later use
      trach_enc_id <- df_vent_wide %>%
           filter(trach_active) %>%
           group_by(enc_id) %>%
@@ -214,9 +215,37 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
           mutate(vent_time_stop = lead(vent_time_start, default = last(vent_time_stop))) %>%
           ungroup() %>%
           arrange(enc_id, vent_time_start) %>%
+          mutate(timediff = as.duration(vent_time_stop - vent_time_start))
+
+     df_vent_wide2 <- df_vent_wide %>%
+          group_by(enc_id) %>%
+          mutate(newvent_episode = if_else(timediff < hours(min_imv_time), NA, vent_episode),
+                 timetonext = as.duration((lead(vent_time_start)-vent_time_stop)/dhours(1))) %>%
+          fill(vent_episode) %>%
+          ungroup() %>% group_by(enc_id, vent_episode) %>%
+          summarize(vent_onoff = first(vent_onoff),
+                    vent_time_start = min(vent_time_start),
+                    vent_time_stop = max(vent_time_stop)) %>%
+          ungroup() %>%
           mutate(timediff = as.duration(vent_time_stop - vent_time_start)) %>%
-          filter(vent_onoff) %>% # This can be removed to also add non-vented times
-          select(-vent_onoff)
+          # filter(vent_onoff) %>% select(-vent_onoff) %>%
+          # filter(!is.na(vent_episode))
+
+     # # For any episodes lasting shorter than min_vent_time, we need to link these to the next episode.
+     # # We achieve this by setting the "stop time" to NA for an episode that is too short.
+     # # Then we fill any NA values from the bottom up.
+     # df_vent_wide <- df_vent_wide %>%
+     #      group_by(enc_id) %>%
+     #      arrange(enc_id, vent_time_start) %>%
+     #      mutate(
+     #           vent_time_stop = if_else(timediff < hours(min_imv_time), NA_POSIXct_, vent_time_stop)
+     #      ) %>%
+     #      filter(timediff >= hours(min_imv_time)) %>%
+     #      fill(vent_time_stop, .direction = "up") %>%
+     #      ungroup() %>%
+     #      mutate(timediff = as.duration(vent_time_stop - vent_time_start)) %>%
+     #      filter(vent_onoff) %>% # This can be removed to also add non-vented times
+     #      select(-vent_onoff)
 
      # Reorganize so that the episodes of ventilation are numbered {1, 2, ..., k}
      # for each ENC_ID
@@ -230,10 +259,6 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
      # it was first recorded in the record for that encounter
      df_vent_wide <- df_vent_wide %>%
           left_join(trach_enc_id)
-
-
-
-
 
      return(df_vent_wide)
 }
