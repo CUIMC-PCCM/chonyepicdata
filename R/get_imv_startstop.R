@@ -200,7 +200,6 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
      # Get start/stop times for each episode of IMV.
      # Need to adjust the stop time for each episode so that it is actually the
      # start time of the "next" episode (it ends when the new one begins)
-     # Finally, remove all non-vented times
      df_vent_wide <- df_vent_wide %>%
           group_by(enc_id, vent_episode) %>%
           # filter(vent_onoff) %>%
@@ -212,24 +211,45 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
           left_join(df_vent_wide_for_merge, join_by('enc_id', 'vent_time_start' == 'vent_meas_time', 'vent_episode')) %>%
           select(enc_id, vent_episode, vent_onoff, vent_time_start, vent_time_stop) %>%
           group_by(enc_id) %>%
-          mutate(vent_time_stop = lead(vent_time_start, default = last(vent_time_stop))) %>%
+          # mutate(vent_time_stop = lead(vent_time_start, default = last(vent_time_stop))) %>%
           ungroup() %>%
           arrange(enc_id, vent_time_start) %>%
           mutate(timediff = as.duration(vent_time_stop - vent_time_start))
 
-     df_vent_wide2 <- df_vent_wide %>%
+     df_vent_wide <- df_vent_wide %>%
           group_by(enc_id) %>%
-          mutate(newvent_episode = if_else(timediff < hours(min_imv_time), NA, vent_episode),
-                 timetonext = as.duration((lead(vent_time_start)-vent_time_stop)/dhours(1))) %>%
+          filter(vent_onoff) %>%
+          filter(timediff >= hours(24)) %>%
+          mutate(timetonext = as.duration(lead(vent_time_start, default = last(vent_time_stop)) - vent_time_stop),
+                 vent_episode = case_when(
+                      lag(timetonext) < hours(min_imv_time) ~ NA,
+                      TRUE ~ vent_episode)) %>%
+          # mutate(newvent_episode = ifelse(row_number() == n() & is.na(newvent_episode), 1, newvent_episode)) %>%
           fill(vent_episode) %>%
           ungroup() %>% group_by(enc_id, vent_episode) %>%
-          summarize(vent_onoff = first(vent_onoff),
-                    vent_time_start = min(vent_time_start),
-                    vent_time_stop = max(vent_time_stop)) %>%
+          summarize(
+               # vent_onoff = first(vent_onoff),
+               vent_time_start = min(vent_time_start),
+               vent_time_stop = max(vent_time_stop)
+               ) %>%
           ungroup() %>%
-          mutate(timediff = as.duration(vent_time_stop - vent_time_start)) %>%
+          mutate(timediff = as.duration(vent_time_stop - vent_time_start))
           # filter(vent_onoff) %>% select(-vent_onoff) %>%
           # filter(!is.na(vent_episode))
+
+     # df_vent_wide2 <- df_vent_wide %>%
+     #      group_by(enc_id) %>%
+     #      mutate(newvent_episode = if_else(timediff < hours(min_imv_time), NA, vent_episode),
+     #             timetonext = as.duration((lead(vent_time_start)-vent_time_stop)/dhours(1))) %>%
+     #      fill(vent_episode) %>%
+     #      ungroup() %>% group_by(enc_id, vent_episode) %>%
+     #      summarize(vent_onoff = first(vent_onoff),
+     #                vent_time_start = min(vent_time_start),
+     #                vent_time_stop = max(vent_time_stop)) %>%
+     #      ungroup() %>%
+     #      mutate(timediff = as.duration(vent_time_stop - vent_time_start)) %>%
+     #      # filter(vent_onoff) %>% select(-vent_onoff) %>%
+     #      # filter(!is.na(vent_episode))
 
      # # For any episodes lasting shorter than min_vent_time, we need to link these to the next episode.
      # # We achieve this by setting the "stop time" to NA for an episode that is too short.

@@ -96,8 +96,8 @@ df_vent_episodes <- left_join(df_vent_episodes, df_picu_startstop, by) %>%
      select(mrn, enc_id, hospital_admission_date, hospital_discharge_date, icu_start_date, icu_stop_date,
             vent_episode, vent_time_start, vent_time_stop, timediff, first_trach_datetime)
 
-saveRDS(df_vent_episodes, paste0(data_path, 'vent_episodes_', today(), '.rds'))
-writexl::write_xlsx(df_vent_episodes, paste0(data_path, 'vent_episodes_', today(), '.xlsx'))
+saveRDS(df_vent_episodes, paste0(data_path, 't21_vent_episodes_', today(), '.rds'))
+writexl::write_xlsx(df_vent_episodes, paste0(data_path, 't21_vent_episodes_', today(), '.xlsx'))
 
 # Example of how to save:
 writexl::write_xlsx(med_exposure, paste0(data_path, '../output/T21_med_exposure-', today(), '.xlsx'))

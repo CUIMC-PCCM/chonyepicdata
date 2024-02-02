@@ -21,6 +21,7 @@ get_rds <- function(file_path = getwd()) {
      # Now just get names
      all_file_names <- list.files(path = file_path, pattern = "\\.rds", full.names = FALSE)
      all_file_names <- sub("_\\d{4}-\\d{2}-\\d{2}.*", "", all_file_names)
+     all_file_names <- paste0('df_', all_file_names)
 
      # Assign file names to list elements
      names(data_list) <- all_file_names
