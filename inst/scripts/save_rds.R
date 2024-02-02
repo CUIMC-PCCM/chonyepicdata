@@ -75,6 +75,9 @@ df_vent <- load_vent(paste0(data_path_chony, fname_imv))
 df_vent_wide <- clean_vent(df_vent)
 df_vent_episodes <- get_imv_startstop(df_vent_wide)
 
+mrn_enc <- df_encounters %>% distinct(mrn, enc_id)
+df_vent_episodes <- left_join(df_encounters, df_vent_episodes, multiple = 'all')
+
 saveRDS(df_vent_wide, paste0(data_path_chony, 'vent_wide_', today(), '.rds'))
 saveRDS(df_vent_episodes, paste0(data_path_chony, 'vent_episodes_', today(), '.rds'))
 
