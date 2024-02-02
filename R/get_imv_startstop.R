@@ -5,14 +5,16 @@
 #'
 #' @param df_vent_wide A wide-format data frame of vent/respiratory settings and measurements. This should
 #' be obtained using [clean_vent]
-#' @param min_imv_time The minimum duration of time (in hours) an episode of IMV must last for it to be counted.
-#' This is designed to make sure that erroneous entries that would flag a patient as extubated will be removed.
-#' Neighboring valid episodes will be joined together.
+#' @param min_inter_ep_duration The minimum duration of time (in hours) between episodes of respiratory support
+#' for them to be counted as separate. This is designed to make sure that erroneous entries that would flag a patient
+#' as extubated will be removed. Neighboring valid episodes will be joined together.
+#' @param min_ep_duration Minimum duration of time (in hours) to count as a period of continuous ventilation. Default
+#' is 24 hours. Shorter episodes will be removed.
 #'
 #' @return A data frame in long format with start and stop times of IMV for each patient/encounter
 #' @export
 #'
-get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
+get_imv_startstop <- function(df_vent_wide, min_inter_ep_duration = 2, min_ep_duration = 24) {
 
      # # Vent variables
      # amp_hfov
@@ -81,7 +83,7 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
      # vc
 
      # First limit to just variables we will use to define an active ventilator
-     df_vent_wide <- df_vent_wide %>%
+     df_vent_temp <- df_vent_wide %>%
           select(enc_id,
                  vent_meas_time,
                  ends_with('status'),
@@ -95,7 +97,7 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
 
      # Determine whether a ventilator is active or inactive at any given time
      # Remove any areas where there is no data
-     df_vent_wide <- df_vent_wide %>%
+     df_vent_temp <- df_vent_temp %>%
           mutate(
                vent_inactive = case_when(
                     vent_status == 'stopped' ~ TRUE,
@@ -162,7 +164,7 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
           filter(if_any(c('vent_active', 'vent_inactive'), ~ !is.na(.)))
 
      # Save tracheostomy encounters for later use
-     trach_enc_id <- df_vent_wide %>%
+     trach_enc_id <- df_vent_temp %>%
           filter(trach_active) %>%
           group_by(enc_id) %>%
           mutate(first_trach_datetime = min(vent_meas_time)) %>%
@@ -171,7 +173,7 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
           distinct()
 
      # Remove a few weird edge cases
-     df_vent_wide <- df_vent_wide %>%
+     df_vent_temp <- df_vent_temp %>%
           mutate(vent_active = case_when(
                !is.na(niv_mode) & !(niv_mode %in% c('standby', 'null')) & o2_deliv_method == 'ventilator' ~ FALSE,
                TRUE ~ vent_active
@@ -182,7 +184,7 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
      # For some reason the variable vent_episode sometimes jumps numbers,
      # but it increases monotonically so it can be adjusted at the end to make sure it
      # increases in +1 increments.
-     df_vent_wide <- df_vent_wide %>%
+     df_vent_temp <- df_vent_temp %>%
           mutate(vent_onoff = case_when(vent_active ~ TRUE,
                                         vent_inactive ~ FALSE,
                                         TRUE ~ NA)) %>%
@@ -195,14 +197,13 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
           ungroup()
 
      # Back this up for a later merge
-     df_vent_wide_for_merge <- df_vent_wide
+     df_vent_wide_for_merge <- df_vent_temp
 
-     # Get start/stop times for each episode of IMV.
-     # Need to adjust the stop time for each episode so that it is actually the
-     # start time of the "next" episode (it ends when the new one begins)
-     df_vent_wide <- df_vent_wide %>%
+     # Get start/stop times for each episode of IMV, and calculate a duration of time
+     # The duration of time spans from the beginning of the new episode, to the beginning of
+     # the *next* new episode
+     df_vent_temp <- df_vent_temp %>%
           group_by(enc_id, vent_episode) %>%
-          # filter(vent_onoff) %>%
           summarize(
                vent_time_start = min(vent_meas_time),
                vent_time_stop = max(vent_meas_time)
@@ -212,64 +213,53 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
           select(enc_id, vent_episode, vent_onoff, vent_time_start, vent_time_stop) %>%
           group_by(enc_id) %>%
           # mutate(vent_time_stop = lead(vent_time_start, default = last(vent_time_stop))) %>%
+          mutate(timediff = as.duration(lead(vent_time_stop, default = last(vent_time_stop)) - vent_time_start)) %>%
           ungroup() %>%
-          arrange(enc_id, vent_time_start) %>%
-          mutate(timediff = as.duration(vent_time_stop - vent_time_start))
+          arrange(enc_id, vent_time_start)
 
-     df_vent_wide <- df_vent_wide %>%
+     # The purpose of this section is to remove intervals between episodes of respiratory support that are
+     # "too short", meaning their time is less than min_interep_duration. We will
+     #   1. Filter so that we only include the "vented" episodes where vent_onoff is TRUE
+     #   2. Find the amount of time from the end of each episode of ventilation, until
+     #      the beginning of the next one.
+     #   3. If the amount of time between episodes is less than min_interep_duration (default 2 hours),
+     #      then remove it's episode_number (set to NA). The first row must always be equal to 1, however.
+     #   4. "Fill" episode_number, moving down. This will cause episodes with brief intervals of
+     #       time between them (brief meaning less than min_interep_duration) to take on the same episode_number
+     #       as the preceding episode.
+     #   5. Recalculate start/stop times based upon the new groups. The start is the minimum of vent_time_start,
+     #      and the stop is the maximum of vent_time_stop.
+     #   6. Recalculate timediff, which is the duration of time of the interval. Note that we can no longer
+     #      use the last time of timediff as the start of the next interval, since we have removed short
+     #      intervals and non-vented times where vent_onoff=FALSE between vent_episodes. This means that
+     #      the next interval might be a lot further in the future.
+     #      in the future so we would be inflating
+     df_vent_temp <- df_vent_temp %>%
           group_by(enc_id) %>%
           filter(vent_onoff) %>%
-          filter(timediff >= hours(24)) %>%
           mutate(timetonext = as.duration(lead(vent_time_start, default = last(vent_time_stop)) - vent_time_stop),
                  vent_episode = case_when(
-                      lag(timetonext) < hours(min_imv_time) ~ NA,
+                      lag(timetonext) < hours(min_inter_ep_duration) ~ NA,
                       TRUE ~ vent_episode)) %>%
-          # mutate(newvent_episode = ifelse(row_number() == n() & is.na(newvent_episode), 1, newvent_episode)) %>%
+          mutate(vent_episode = ifelse(row_number() == n() & is.na(vent_episode), 1, vent_episode)) %>%
           fill(vent_episode) %>%
           ungroup() %>% group_by(enc_id, vent_episode) %>%
           summarize(
                # vent_onoff = first(vent_onoff),
                vent_time_start = min(vent_time_start),
                vent_time_stop = max(vent_time_stop)
-               ) %>%
-          ungroup() %>%
-          mutate(timediff = as.duration(vent_time_stop - vent_time_start))
-          # filter(vent_onoff) %>% select(-vent_onoff) %>%
-          # filter(!is.na(vent_episode))
+          ) %>%
+          ungroup()
 
-     # df_vent_wide2 <- df_vent_wide %>%
-     #      group_by(enc_id) %>%
-     #      mutate(newvent_episode = if_else(timediff < hours(min_imv_time), NA, vent_episode),
-     #             timetonext = as.duration((lead(vent_time_start)-vent_time_stop)/dhours(1))) %>%
-     #      fill(vent_episode) %>%
-     #      ungroup() %>% group_by(enc_id, vent_episode) %>%
-     #      summarize(vent_onoff = first(vent_onoff),
-     #                vent_time_start = min(vent_time_start),
-     #                vent_time_stop = max(vent_time_stop)) %>%
-     #      ungroup() %>%
-     #      mutate(timediff = as.duration(vent_time_stop - vent_time_start)) %>%
-     #      # filter(vent_onoff) %>% select(-vent_onoff) %>%
-     #      # filter(!is.na(vent_episode))
-
-     # # For any episodes lasting shorter than min_vent_time, we need to link these to the next episode.
-     # # We achieve this by setting the "stop time" to NA for an episode that is too short.
-     # # Then we fill any NA values from the bottom up.
-     # df_vent_wide <- df_vent_wide %>%
-     #      group_by(enc_id) %>%
-     #      arrange(enc_id, vent_time_start) %>%
-     #      mutate(
-     #           vent_time_stop = if_else(timediff < hours(min_imv_time), NA_POSIXct_, vent_time_stop)
-     #      ) %>%
-     #      filter(timediff >= hours(min_imv_time)) %>%
-     #      fill(vent_time_stop, .direction = "up") %>%
-     #      ungroup() %>%
-     #      mutate(timediff = as.duration(vent_time_stop - vent_time_start)) %>%
-     #      filter(vent_onoff) %>% # This can be removed to also add non-vented times
-     #      select(-vent_onoff)
+     # Recalculate timediff (the duration of the episode). Remove any episodes with
+     # timediff shorter than min_ep_duration, where default is 24 hours
+     df_vent_temp <- df_vent_temp %>%
+          mutate(timediff = as.duration(vent_time_stop - vent_time_start)) %>%
+          filter(timediff >= hours(min_ep_duration))
 
      # Reorganize so that the episodes of ventilation are numbered {1, 2, ..., k}
      # for each ENC_ID
-     df_vent_wide <- df_vent_wide %>%
+     df_vent_temp <- df_vent_temp %>%
           group_by(enc_id) %>%
           arrange(enc_id, vent_episode) %>%
           mutate(vent_episode = row_number(vent_episode)) %>%
@@ -277,8 +267,8 @@ get_imv_startstop <- function(df_vent_wide, min_imv_time = 2) {
 
      # Add in whether or not the patient had a tracheostomy, and if so, when
      # it was first recorded in the record for that encounter
-     df_vent_wide <- df_vent_wide %>%
+     df_vent_episodes <- df_vent_temp %>%
           left_join(trach_enc_id)
 
-     return(df_vent_wide)
+     return(df_vent_episodes)
 }

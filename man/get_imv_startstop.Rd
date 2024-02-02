@@ -4,15 +4,22 @@
 \alias{get_imv_startstop}
 \title{get_imv_startstop}
 \usage{
-get_imv_startstop(df_vent_wide, min_imv_time = 2)
+get_imv_startstop(
+  df_vent_wide,
+  min_inter_ep_duration = 2,
+  min_ep_duration = 24
+)
 }
 \arguments{
 \item{df_vent_wide}{A wide-format data frame of vent/respiratory settings and measurements. This should
 be obtained using \link{clean_vent}}
 
-\item{min_imv_time}{The minimum duration of time (in hours) an episode of IMV must last for it to be counted.
-This is designed to make sure that erroneous entries that would flag a patient as extubated will be removed.
-Neighboring valid episodes will be joined together.}
+\item{min_inter_ep_duration}{The minimum duration of time (in hours) between episodes of respiratory support
+for them to be counted as separate. This is designed to make sure that erroneous entries that would flag a patient
+as extubated will be removed. Neighboring valid episodes will be joined together.}
+
+\item{min_ep_duration}{Minimum duration of time (in hours) to count as a period of continuous ventilation. Default
+is 24 hours. Shorter episodes will be removed.}
 }
 \value{
 A data frame in long format with start and stop times of IMV for each patient/encounter
