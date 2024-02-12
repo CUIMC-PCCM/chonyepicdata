@@ -16,6 +16,11 @@
 #'
 get_imv_startstop <- function(df_vent_wide, min_inter_ep_duration = 2, min_ep_duration = 24) {
 
+     # Required to avoid warnings when building package
+     enc_id <- vent_meas_time <- o2_deliv_method <- vent_mode <- niv_mode <-
+          vent_type <- lda_airway <- peep <- trach_active <- first_trach_datetime <- vent_onoff <-
+          vent_change <- vent_episode <- vent_time_start <- vent_time_stop <- timediff <-  NULL
+
      # # Vent variables
      # amp_hfov
      # bcpap_status
@@ -191,7 +196,7 @@ get_imv_startstop <- function(df_vent_wide, min_inter_ep_duration = 2, min_ep_du
           filter(!is.na(vent_onoff)) %>%
           group_by(enc_id) %>%
           mutate(
-               vent_change = vent_onoff != lag(vent_onoff, default = first(vent_onoff)),
+               vent_change = vent_onoff != lag(vent_onoff, default = dplyr::first(vent_onoff)),
                vent_episode = cumsum(vent_change) + 1
           ) %>%
           ungroup()
@@ -245,7 +250,7 @@ get_imv_startstop <- function(df_vent_wide, min_inter_ep_duration = 2, min_ep_du
           fill(vent_episode) %>%
           ungroup() %>% group_by(enc_id, vent_episode) %>%
           summarize(
-               # vent_onoff = first(vent_onoff),
+               # vent_onoff = dplyr::first(vent_onoff),
                vent_time_start = min(vent_time_start),
                vent_time_stop = max(vent_time_stop)
           ) %>%
