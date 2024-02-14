@@ -38,6 +38,7 @@ saveRDS(df_capd, paste0(data_path, 'capd_', today(), '.rds'))
 
 # Load medication data
 df_meds <- load_meds(paste0(data_path, fname_ip_meds))
+df_meds_cumulative <- clean_meds(df_meds)
 saveRDS(df_meds, paste0(data_path, 'meds_', today(), '.rds'))
 
 # Get vital signs (takes some processing so multiple steps)
