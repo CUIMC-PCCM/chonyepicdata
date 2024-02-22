@@ -16,32 +16,54 @@
 #' @return A data frame with vent/respiratory support flowsheet rows.
 #' @export
 load_vent <- function(vent_filepath,
-                        vent_coltypes = list(
-                             col_character(),   # PAT_ENC_CSN_ID
-                             col_character(),   # MEASUREMENT_NAME
-                             col_character(),   # FLOWSHEET_MEASURE_NAME
-                             col_character(),   # MEASURE_VALUE
-                             col_datetime()     # RECORDED_TIME
-                        ),
-                        vent_to_load = NA,
-                        max_load = Inf)
+                      vent_coltypes = list(
+                           col_character(),   # PAT_ENC_CSN_ID
+                           col_character(),   # MEASUREMENT_NAME
+                           col_character(),   # FLOWSHEET_MEASURE_NAME
+                           col_character(),   # MEASURE_VALUE
+                           col_datetime()     # RECORDED_TIME
+                      ),
+                      vent_to_load = NA,
+                      max_load = Inf)
 
 {
 
      # Required to avoid warnings when building package
      pat_enc_csn_id <- recorded_time <- flowsheet_name <- NULL
 
-     # Load in all vent data
-     suppressWarnings({
-          df_vent <- read_delim(vent_filepath,
-                                  col_types = vent_coltypes,
-                                  n_max = max_load,
-                                  delim = '|') %>%
-               clean_names() %>%
-               mutate(across(where(is.character), str_to_lower)) %>%
-               rename(enc_id = pat_enc_csn_id, vent_meas_time = recorded_time)
+     # Determine filetype and load using correct readr function
+     fileext <- tools::file_ext(vent_filepath)
 
-     })
+     # Load TXT file
+     if(fileext == 'txt') {
+
+          # Load in all vent data
+          suppressWarnings({
+               df_vent <- read_delim(vent_filepath,
+                                     col_types = vent_coltypes,
+                                     n_max = max_load,
+                                     delim = '|') %>%
+                    clean_names() %>%
+                    mutate(across(where(is.character), str_to_lower)) %>%
+                    rename(enc_id = pat_enc_csn_id, vent_meas_time = recorded_time)
+
+          })
+     }
+
+     # Load CSV file
+     else if(fileext == 'csv') {
+
+          # Load in all vent data
+          suppressWarnings({
+               df_vent <- read_csv(vent_filepath,
+                                     col_types = vent_coltypes,
+                                     n_max = max_load) %>%
+                    clean_names() %>%
+                    mutate(across(where(is.character), str_to_lower)) %>%
+                    rename(enc_id = pat_enc_csn_id, vent_meas_time = recorded_time)
+
+          })
+     }
 
      # If a particular vent settings or measurements were specified, just filter to those
      if(!is.na(vent_to_load))
