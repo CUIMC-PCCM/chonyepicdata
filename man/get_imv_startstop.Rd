@@ -7,7 +7,7 @@
 get_imv_startstop(
   df_vent_wide,
   min_inter_ep_duration = 2,
-  min_ep_duration = 24
+  min_ep_duration = 12
 )
 }
 \arguments{
@@ -19,7 +19,7 @@ for them to be counted as separate. This is designed to make sure that erroneous
 as extubated will be removed. Neighboring valid episodes will be joined together.}
 
 \item{min_ep_duration}{Minimum duration of time (in hours) to count as a period of continuous ventilation. Default
-is 24 hours. Shorter episodes will be removed.}
+is 12 hours. Shorter episodes will be removed.}
 }
 \value{
 A data frame in long format with start and stop times of IMV for each patient/encounter

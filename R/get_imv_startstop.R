@@ -9,17 +9,17 @@
 #' for them to be counted as separate. This is designed to make sure that erroneous entries that would flag a patient
 #' as extubated will be removed. Neighboring valid episodes will be joined together.
 #' @param min_ep_duration Minimum duration of time (in hours) to count as a period of continuous ventilation. Default
-#' is 24 hours. Shorter episodes will be removed.
+#' is 12 hours. Shorter episodes will be removed.
 #'
 #' @return A data frame in long format with start and stop times of IMV for each patient/encounter
 #' @export
 #'
-get_imv_startstop <- function(df_vent_wide, min_inter_ep_duration = 2, min_ep_duration = 24) {
+get_imv_startstop <- function(df_vent_wide, min_inter_ep_duration = 2, min_ep_duration = 12) {
 
      # Required to avoid warnings when building package
      enc_id <- vent_meas_time <- o2_deliv_method <- vent_mode <- niv_mode <-
           vent_type <- lda_airway <- peep <- trach_active <- first_trach_datetime <- vent_onoff <-
-          vent_change <- vent_episode <- vent_time_start <- vent_time_stop <- timediff <-  NULL
+          vent_change <- vent_episode <- vent_time_start <- vent_time_stop <- timediff <- etco2 <- NULL
 
      # # Vent variables
      # amp_hfov
@@ -97,7 +97,8 @@ get_imv_startstop <- function(df_vent_wide, min_inter_ep_duration = 2, min_ep_du
                  niv_mode,
                  vent_type,
                  lda_airway,
-                 peep) %>%
+                 peep,
+                 etco2) %>%
           arrange(enc_id, vent_meas_time)
 
      # Determine whether a ventilator is active or inactive at any given time

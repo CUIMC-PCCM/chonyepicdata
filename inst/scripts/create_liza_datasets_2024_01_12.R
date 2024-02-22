@@ -90,7 +90,7 @@ df_vent <- load_vent(paste0(data_path, fname_imv))
 df_vent <- df_vent %>% filter(enc_id %in% t21_enc_id)
 df_vent_wide <- clean_vent(df_vent)
 df_vent_episodes <- get_imv_startstop(df_vent_wide)
-by <- join_by(enc_id, within(x$vent_time_start, x$vent_time_stop, y$icu_start_date, y$icu_stop_date))
+by <- join_by(enc_id, overlaps(x$vent_time_start, x$vent_time_stop, y$icu_start_date, y$icu_stop_date))
 df_vent_episodes <- left_join(df_vent_episodes, df_picu_startstop, by) %>%
      inner_join(df_encounters, by = c('mrn', 'enc_id')) %>%
      select(mrn, enc_id, hospital_admission_date, hospital_discharge_date, icu_start_date, icu_stop_date,
