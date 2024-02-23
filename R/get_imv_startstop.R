@@ -91,20 +91,35 @@ get_imv_startstop <- function(df_vent_wide, min_inter_ep_duration = 2, min_ep_du
      df_vent_temp <- df_vent_wide %>%
           select(enc_id,
                  vent_meas_time,
-                 ends_with('status'),
                  o2_deliv_method,
-                 vent_mode,
-                 niv_mode,
-                 vent_type,
+                 ends_with('status'),
+                 amp_hfov,
+                 bipap_rate,
+                 cpap,
+                 delta_p,
+                 epap,
+                 etco2,
+                 freq_hfov,
+                 ipap,
+                 itime_niv,
+                 itime_vent,
                  lda_airway,
+                 map_vent,
+                 niv_mode,
+                 o2_flow_rate,
                  peep,
-                 etco2) %>%
+                 pip_set,
+                 vent_mode,
+                 vent_type,
+          ) %>%
           arrange(enc_id, vent_meas_time)
 
      # Determine whether a ventilator is active or inactive at any given time
      # Remove any areas where there is no data
      df_vent_temp <- df_vent_temp %>%
           mutate(
+
+               # Ventilator is defined as INACTIVE based on documentation
                vent_inactive = case_when(
                     vent_status == 'stopped' ~ TRUE,
                     vent_type == 'niv' ~ TRUE,
@@ -138,8 +153,14 @@ get_imv_startstop <- function(df_vent_wide, min_inter_ep_duration = 2, min_ep_du
                     hfnc_status %in% c('started', 'continued') ~ TRUE,
                     bipap_status %in% c('started', 'continued') ~ TRUE,
                     bcpap_status %in% c('started', 'continued') ~ TRUE),
-               vent_active = case_when(
-                    vent_status %in% c('started', 'continued') & !vent_inactive ~ TRUE, # vent_status is sometimes started/continued for CPAP or BiPAP via a vent
+
+               # IMV is defined as ACTIVE based on documentation
+               imv_active = case_when(
+                    vent_status %in% c('started', 'continued') & !vent_inactive ~ TRUE, # vent_status is sometimes
+                    # started/continued for CPAP or BiPAP via a vent
+
+                    # ETCO2 plus any other vent-specific setting defines IMV
+                    etco2 > 0 & (pip_set > 0 | o2_deliv_method == 'ventilator' | map_vent > 0 | peep > 0 | delta_p > 0 | itime_vent > 0) ~ TRUE,
                     vent_type == 'invasive' ~ TRUE,
                     lda_airway == 'endotracheal tube' ~ TRUE,
                     o2_deliv_method %in% c('endotracheal tube', 'nasotreacheal tube', 'ventilator', 't-piece') ~ TRUE,
@@ -158,16 +179,117 @@ get_imv_startstop <- function(df_vent_wide, min_inter_ep_duration = 2, min_ep_du
                                      'simv-pc',
                                      'simv-prvc',
                                      'simv-vc',
-                                     'vc') ~ TRUE
+                                     'vc') ~ TRUE,
+
+                    # Any HFOV setting
+                    amp_hfov > 0 | freq_hfov > 0 ~ TRUE
+
                     # peep > 0 ~ TRUE  # Can't use this - RTs frequently record PEEP as CPAP and vice versa
                ),
+
+               # HFOV is active
+               hfov_active = if_else(amp_hfov > 0 | freq_hfov > 0, TRUE, FALSE),
+
+               # BiPAP is defined as ACTIVE...
+               bipap_active = case_when(
+                    bipap_rate > 0 ~ TRUE,
+                    str_detect(niv_mode, 'bipap|niv') ~ TRUE,
+                    epap > 0 ~ TRUE,
+                    ipap > 0 ~ TRUE,
+                    itime_niv > 0 ~ TRUE,
+                    bipap_status %in% c('started', 'continued') ~ TRUE,
+                    vent_mode %in% c('niv pc') ~ TRUE
+               ),
+
+               # CPAP is ACTIVE...
+               cpap_active = case_when(
+                    niv_mode %in% c('cpap', 'bubble cpap', 'ncpap') ~ TRUE,
+                    vent_mode %in% c('nasalcpap') ~ TRUE,
+                    cpap > 0 & !imv_active ~ TRUE,
+                    bcpap_status %in% c('started', 'continued') ~ TRUE,
+                    o2_deliv_method %in% c('bubble cpap') ~ TRUE
+               ),
+
+               # HFNC is ACTIVE
+               hfnc_active = case_when(
+                    o2_deliv_method %in% c('prongs', 'nasal cannula') & o2_flow_rate >=4 ~ TRUE,
+                    o2_deliv_method == 'high flow nasal cannula' ~ TRUE,
+                    vent_mode == 'high flow' & o2_deliv_method %in% c('prongs', 'nasal cannula') ~ TRUE,
+                    hfnc_status %in% c('started', 'continued') ~ TRUE
+               ),
+
+               # NC, facemask, or other conventional o2 delivery method is ACTIVE
+               simple_o2_active = case_when(
+                    o2_flow_rate < 4 ~ TRUE,
+                    o2_deliv_method %in% c('face mask, humidified',
+                                           'venturi mask',
+                                           'cool aerosol',
+                                           'blow-by',
+                                           'aerosol mask',
+                                           'simple mask',
+                                           'non-rebreather mask',
+                                           'mist tent',
+                                           'partial non-rebreather mask',
+                                           'face tent',
+                                           'partial rebreather mask',
+                                           'hood',
+                                           'heated aerosol',
+                                           'pediatric hood or tent') ~ TRUE
+               ),
+
+               # No support at all
+               no_support_active = case_when(
+                    o2_deliv_method == 'room air' & !coalesce(imv_active,
+                                                             bipap_active,
+                                                             cpap_active,
+                                                             hfov_active,
+                                                             hfnc_active,
+                                                             simple_o2_active,
+                                                             default = FALSE) ~ TRUE
+               ),
+
                trach_active = case_when(
-                    o2_deliv_method %in% c('trach collar mist', 'trach mask', 'trach tube', 'transtracheal catheter') ~ TRUE,
+                    o2_deliv_method %in% c('trach collar mist',
+                                           'trach mask',
+                                           'trach tube',
+                                           'transtracheal catheter',
+                                           'high flow trach adaptor') ~ TRUE,
                     lda_airway == 'tracheostomy' ~ TRUE
                )
+          )
+
+     # Remove a few weird edge cases
+     df_vent_temp <- df_vent_temp %>%
+          mutate(imv_active = case_when(
+               !is.na(niv_mode) & !(niv_mode %in% c('standby', 'null')) & o2_deliv_method == 'ventilator' ~ FALSE,
+               TRUE ~ imv_active
+          ))
+
+     # Save one file for all levels of respiratory support (or its definitive absence)
+     df_vent_temp_all <- df_vent_temp %>%
+          filter(if_any(c('imv_active', 'vent_inactive', 'hfov_active', 'bipap_active',
+                          'cpap_active', 'hfnc_active', 'simple_o2_active', 'no_support_active',
+                          'trach_active'), ~ !is.na(.))) %>%
+          transmute(enc_id = enc_id,
+                    vent_meas_time = vent_meas_time,
+                    current_support = zoo::na.locf(
+                         case_when(
+                              hfov_active ~ 'hfov',
+                              imv_active ~ 'imv',
+                              bipap_active ~ 'bipap',
+                              cpap_active ~ 'cpap',
+                              hfnc_active ~ 'hfnc',
+                              simple_o2_active ~ 'simple_o2',
+                              no_support_active ~ 'room_air'),
+                         na.rm = FALSE,
+                         maxgap = min_inter_ep_duration)
           ) %>%
-          # select(enc_id, vent_meas_time, vent_active, vent_inactive) %>%
-          filter(if_any(c('vent_active', 'vent_inactive'), ~ !is.na(.)))
+          filter(!is.na(current_support))
+
+     # Get all levels of respiratory support (or its definitive absence)
+     df_vent_temp <- df_vent_temp %>%
+          # select(enc_id, vent_meas_time, imv_active, vent_inactive) %>%
+          filter(if_any(c('imv_active', 'vent_inactive'), ~ !is.na(.)))
 
      # Save tracheostomy encounters for later use
      trach_enc_id <- df_vent_temp %>%
@@ -178,20 +300,13 @@ get_imv_startstop <- function(df_vent_wide, min_inter_ep_duration = 2, min_ep_du
           select(enc_id, first_trach_datetime) %>%
           distinct()
 
-     # Remove a few weird edge cases
-     df_vent_temp <- df_vent_temp %>%
-          mutate(vent_active = case_when(
-               !is.na(niv_mode) & !(niv_mode %in% c('standby', 'null')) & o2_deliv_method == 'ventilator' ~ FALSE,
-               TRUE ~ vent_active
-          ))
-
      # Create a new variable indicating change in vent_onoff,
      # and another that will flag each episode of ventilation.
      # For some reason the variable vent_episode sometimes jumps numbers,
      # but it increases monotonically so it can be adjusted at the end to make sure it
      # increases in +1 increments.
      df_vent_temp <- df_vent_temp %>%
-          mutate(vent_onoff = case_when(vent_active ~ TRUE,
+          mutate(vent_onoff = case_when(imv_active ~ TRUE,
                                         vent_inactive ~ FALSE,
                                         TRUE ~ NA)) %>%
           filter(!is.na(vent_onoff)) %>%

@@ -11,7 +11,7 @@ options(scipen = 3)
 # Load configuration files. You may need to edit the file (located in a config folder) with your own filepath.
 # Alternately you can just send in the correct filename.
 load_config(useglobal = TRUE)
-data_path <- data_path_chony
+# data_path <- data_path_chony
 
 # load all encounters
 df_encounters <- load_encounters(paste0(data_path, fname_encounter))
@@ -78,7 +78,8 @@ df_vent_wide <- clean_vent(df_vent)
 df_vent_episodes <- get_imv_startstop(df_vent_wide, min_inter_ep_duration = 2, min_ep_duration = 12)
 
 mrn_enc <- df_encounters %>% distinct(mrn, enc_id)
-df_vent_episodes <- left_join(df_encounters, df_vent_episodes, multiple = 'all')
+df_vent_episodes <- left_join(df_encounters, df_vent_episodes, multiple = 'all') %>%
+     select(-first_trach_datetime)
 
 saveRDS(df_vent_wide, paste0(data_path, 'vent_wide_', today(), '.rds'))
 saveRDS(df_vent_episodes, paste0(data_path, 'vent_episodes_', today(), '.rds'))

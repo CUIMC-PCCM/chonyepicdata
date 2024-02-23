@@ -16,7 +16,7 @@ clean_vent <- function(df_vent) {
           flowsheet_measure_name <- measure_value  <-  NULL
 
      # Categorize useful data and get rid of the rest
-     df_vent_wide <- df_vent %>%
+     df_vent_wide2 <- df_vent %>%
           select(-measurement_name) %>%
           mutate(vent_meas_name = case_when(
                flowsheet_measure_name == 'r fs ip vent delta p (amplitude) (set)' ~	'amp_hfov',
@@ -60,7 +60,8 @@ clean_vent <- function(df_vent) {
           # For some reason there are two cpap variables that almost always agree,
           # but occasionally don't. Keep the more frequently populated one, and if it doesn't have a value,
           # replace it with the other one.
-          mutate(across(starts_with('cpap'), ~ifelse(is.null(.), NA, .))) %>%
+          mutate(cpap_level = as.numeric(str_remove_all(cpap_level, '\\+|\\-')),
+                 cpap_rt = as.numeric(str_remove_all(cpap_rt, '\\+|\\-'))) %>%
           mutate(cpap = if_else(is.na(cpap_level), cpap_rt, cpap_level)) %>%
           select(-cpap_level, -cpap_rt)
 
