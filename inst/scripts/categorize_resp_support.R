@@ -1,9 +1,12 @@
 
 
-# Save one file for all levels of respiratory support (or its definitive absence).
+# Save one data frame for all levels of respiratory support (or its definitive absence).
 # Only keep the "active" versus "inactive" variables we created above.
+# Thenm use these new variables to hierarchically create a new variable "current_support"
+# which is a factor-type that will mutually exclusively describe the current level
+# of respiratory support.
 # Use a LOCF (last one carried forward) strategy to ensure that we don't prematurely
-# end a respiratory support episode if nothing was charted for 4 hours
+# end a respiratory support episode if nothing was charted for 4 hours.
 df_vent_temp_all <- df_vent_temp %>%
      filter(if_any(c('imv_active', 'vent_inactive', 'hfov_active', 'bipap_active',
                      'cpap_active', 'hfnc_active', 'simple_o2_active', 'no_support_active',
