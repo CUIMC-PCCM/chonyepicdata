@@ -55,7 +55,7 @@ load_vent <- function(vent_filepath,
 
           # Load in all vent data
           suppressWarnings({
-               df_vent <- read_csv(vent_filepath,
+               df_vent <- readr::read_csv(vent_filepath,
                                      col_types = vent_coltypes,
                                      n_max = max_load) %>%
                     clean_names() %>%

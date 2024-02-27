@@ -11,7 +11,7 @@ options(scipen = 3)
 # Load configuration files. You may need to edit the file (located in a config folder) with your own filepath.
 # Alternately you can just send in the correct filename.
 load_config(useglobal = TRUE)
-# data_path <- data_path_chony
+data_path <- data_path_chony
 
 # load all encounters
 df_encounters <- load_encounters(paste0(data_path, fname_encounter))

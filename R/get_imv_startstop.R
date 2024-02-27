@@ -19,7 +19,9 @@ get_imv_startstop <- function(df_vent_wide, min_inter_ep_duration = 2, min_ep_du
      # Required to avoid warnings when building package
      enc_id <- vent_meas_time <- o2_deliv_method <- vent_mode <- niv_mode <-
           vent_type <- lda_airway <- peep <- trach_active <- first_trach_datetime <- vent_onoff <-
-          vent_change <- vent_episode <- vent_time_start <- vent_time_stop <- timediff <- etco2 <- NULL
+          vent_change <- vent_episode <- vent_time_start <- vent_time_stop <- timediff <- etco2 <-
+          amp_hfov <- bipap_rate <- cpap <- delta_p <- epap <- freq_hfov <- ipap <- itime_niv <-
+          itime_vent <- map_vent <- o2_flow_rate <- pip_set <- current_support <- NULL
 
      # # Vent variables
      # amp_hfov
@@ -270,7 +272,7 @@ get_imv_startstop <- function(df_vent_wide, min_inter_ep_duration = 2, min_ep_du
           filter(if_any(c('imv_active', 'vent_inactive', 'hfov_active', 'bipap_active',
                           'cpap_active', 'hfnc_active', 'simple_o2_active', 'no_support_active',
                           'trach_active'), ~ !is.na(.))) %>%
-          transmute(enc_id = enc_id,
+          dplyr::transmute(enc_id = enc_id,
                     vent_meas_time = vent_meas_time,
                     current_support = zoo::na.locf(
                          case_when(

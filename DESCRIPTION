@@ -26,5 +26,6 @@ Imports:
     rlang,
     stringr,
     tidyr,
-    withr
+    withr,
+    zoo
 Roxygen: list(markdown = TRUE)
