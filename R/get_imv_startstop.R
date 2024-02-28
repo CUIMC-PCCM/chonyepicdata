@@ -120,7 +120,6 @@ get_imv_startstop <- function(df_vent_wide, min_inter_ep_duration = 2, min_ep_du
      # Remove any areas where there is no data
      df_vent_temp <- df_vent_temp %>%
           mutate(
-
                # Ventilator is defined as INACTIVE based on documentation
                vent_inactive = case_when(
                     vent_status == 'stopped' ~ TRUE,

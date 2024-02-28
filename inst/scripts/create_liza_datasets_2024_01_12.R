@@ -11,6 +11,7 @@ options(scipen = 3)
 # Load configuration files. You may need to edit the file (located in a config folder) with your own filepath.
 # Alternately you can just send in the correct filename.
 load_config(useglobal = TRUE)
+data_path <- data_path_chony
 
 # load all encounters
 df_encounters <- load_encounters(paste0(data_path, fname_encounter))
@@ -51,10 +52,31 @@ df_icd_t21only <- df_icd %>% filter(enc_id %in% t21_enc_id) %>%
 df_meds <- load_meds(paste0(data_path, fname_ip_meds))
 df_meds <- df_meds %>% filter(mrn %in% t21_mrn)
 
-# Adjust the start/stop PICU time table to match the format needed for clean_meds()
-time_limits <- df_picu_startstop %>%
-     mutate(picu_intervals = interval(icu_start_date, icu_stop_date)) %>%
-     select(-mrn, -icu_start_date, -icu_stop_date)
+# Get ventilator data and just limit to patient encounters we are interested in
+df_vent <- load_vent(paste0(data_path, fname_imv))
+df_vent <- df_vent %>% filter(enc_id %in% t21_enc_id)
+df_vent_wide <- clean_vent(df_vent)
+df_vent_episodes <- get_imv_startstop(df_vent_wide)
+
+# Join based on encounter ID, and whether the intervals for (vent start, vent stop) and (icu start, icu stop)
+# have any overlap. This ensures we include patients intubated in the ED or a procedural area
+by <- join_by(enc_id, overlaps(x$vent_time_start, x$vent_time_stop, y$icu_start_date, y$icu_stop_date))
+df_vent_episodes <- left_join(df_vent_episodes, df_picu_startstop, by) %>%
+     inner_join(df_encounters, by = c('mrn', 'enc_id')) %>%
+     select(mrn, enc_id, hospital_admission_date, hospital_discharge_date, icu_start_date, icu_stop_date,
+            vent_episode, vent_time_start, vent_time_stop, timediff, first_trach_datetime)
+df_vent_episodes <- df_vent_episodes %>% select(-first_trach_datetime)
+
+# We are now going to look at drug exposure. The start/stop times will be defined by start/stop
+# of ventilation. We later may use pre/post drug exposure.
+time_limits <- df_vent_episodes %>%
+     mutate(picu_intervals = interval(vent_time_start, vent_time_stop)) %>%
+     select(enc_id, picu_intervals)
+
+# # Adjust the start/stop PICU time table to match the format needed for clean_meds()
+# time_limits <- df_picu_startstop %>%
+#      mutate(picu_intervals = interval(icu_start_date, icu_stop_date)) %>%
+#      select(-mrn, -icu_start_date, -icu_stop_date)
 
 # Get weights, which are required for adjusting to weight-based dosing.
 # For some reason weight is recorded in ounces, so divide by 35.274 to get kg
@@ -67,37 +89,64 @@ df_weights <- load_vitals(paste0(data_path, fname_vitals), vitals_to_load = 'R N
 # Get medication exposures, just for the T21 cohort, only during valid PICU times, and only for fentanyl,
 # midazolam, and dexmedetomidine. Individual PICU stays will have the encounter ID, with #1, #2, #3, etc
 # appended to the end to denote which PICU stay it was
-med_exposure <- clean_meds(df_meds, medlist = c('fentanyl', 'midazolam', 'dexmedetomidine'),
+med_exposure <- clean_meds(df_meds, medlist = c('midazolam',
+                                                'lorazepam',
+                                                'diazepam',
+                                                'morphine',
+                                                'fentanyl',
+                                                'hydromorphone',
+                                                'oxycodone',
+                                                'methadone',
+                                                'clonidine',
+                                                'ketamine',
+                                                'pentobarbital',
+                                                'quetiapine',
+                                                'haloperidol',
+                                                'risperidone',
+                                                'olanzapine',
+                                                'chlorpromazine',
+                                                'aripiprazole',
+                                                'diphenhydramine',
+                                                'hydroyxyzine',
+                                                'dexmedetomidine'
+                                                ),
                            time_limits = time_limits, patient_weights = df_weights)
 
-# Separate out the number of the PICU stay
+# Separate out the number of the episode of ventilation
 med_exposure <- med_exposure %>%
-     separate_wider_delim(cols = enc_id, delim = '#', names = c('enc_id', 'picu_stay_num')) %>%
-     mutate(picu_stay_num = as.integer(picu_stay_num)) %>%
+     separate_wider_delim(cols = enc_id, delim = '#', names = c('enc_id', 'vent_ep_num')) %>%
+     mutate(vent_ep_num = as.integer(vent_ep_num)) %>%
      left_join(df_encounters)
 
-# Get the PICU start/stop dates and add in
-df_picu_startstop <- df_picu_startstop %>%
-     group_by(enc_id) %>% mutate(picu_stay_num = row_number())
+# Get the ventilation episode number
+df_vent_episodes_num <- df_vent_episodes %>%
+     group_by(enc_id) %>% mutate(vent_ep_num = row_number()) %>%
+     ungroup() %>%
+     select(mrn, enc_id, vent_ep_num, vent_time_start, vent_time_stop)
 
+# Join the vent episode data to the med exposure data
 med_exposure <- med_exposure %>%
-     left_join(df_picu_startstop) %>%
-     relocate(mrn, enc_id, hospital_admission_date, hospital_discharge_date, icu_start_date, icu_stop_date, picu_stay_num) %>%
+     left_join(df_vent_episodes_num) %>%
      select(-sex, -dob)
 
-# Get ventilator data and just limit to patient encounters we are interested in
-df_vent <- load_vent(paste0(data_path, fname_imv))
-df_vent <- df_vent %>% filter(enc_id %in% t21_enc_id)
-df_vent_wide <- clean_vent(df_vent)
-df_vent_episodes <- get_imv_startstop(df_vent_wide)
-by <- join_by(enc_id, overlaps(x$vent_time_start, x$vent_time_stop, y$icu_start_date, y$icu_stop_date))
-df_vent_episodes <- left_join(df_vent_episodes, df_picu_startstop, by) %>%
-     inner_join(df_encounters, by = c('mrn', 'enc_id')) %>%
-     select(mrn, enc_id, hospital_admission_date, hospital_discharge_date, icu_start_date, icu_stop_date,
-            vent_episode, vent_time_start, vent_time_stop, timediff, first_trach_datetime)
+# Now join the PICU stay data
+picu_stay_num <- df_picu_startstop %>%
+     group_by(enc_id) %>%
+     mutate(picu_stay_num = row_number()) %>%
+     ungroup()
 
-saveRDS(df_vent_episodes, paste0(data_path, 't21_vent_episodes_', today(), '.rds'))
-writexl::write_xlsx(df_vent_episodes, paste0(data_path, 't21_vent_episodes_', today(), '.xlsx'))
+med_exposure <- med_exposure %>%
+     left_join(picu_stay_num, by = join_by(mrn, enc_id,
+                                           overlaps(x$vent_time_start, x$vent_time_stop, y$icu_start_date, y$icu_stop_date))) %>%
+     relocate(mrn, enc_id, hospital_admission_date, hospital_discharge_date,
+              picu_stay_num, icu_start_date, icu_stop_date,
+              vent_ep_num, vent_time_start, vent_time_stop)
+
+# Save the data
+saveRDS(df_vent_episodes, paste0(data_path, '../output/t21_vent_med_exposures_', today(), '.rds'))
+writexl::write_xlsx(df_vent_episodes, paste0(data_path, '../output/t21_vent_med_exposures_', today(), '.xlsx'))
 
 # Example of how to save:
 writexl::write_xlsx(med_exposure, paste0(data_path, '../output/T21_med_exposure-', today(), '.xlsx'))
+
+## Section to load old data

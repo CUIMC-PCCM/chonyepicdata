@@ -604,31 +604,33 @@ clean_meds <- function(df_meds,
           mutate(type = 'bolus')
 
      all_doses <- bind_rows(stack_infuse, stack_bolus) %>%
-          # # This is used to convert to midazolam and morphine equivalents. Skip
-          # # it for now.
-          # mutate(
-          #      interv_dose = case_when(
-          #           med == 'midazolam' & route == 'iv' ~ interv_dose,
-          #           med == 'midazolam' & route == 'enteral' ~ interv_dose / 10,
-          #           med == 'lorazepam' ~ interv_dose / 2,
-          #           med == 'clonazepam' ~ interv_dose / 4,
-          #           med == 'diazepam' ~ interv_dose * 4,
-          #           med == 'morphine' & route == 'iv' ~ interv_dose,
-          #           med == 'morphine' & route == 'enteral' ~ interv_dose / 3,
-     #           med == 'fentanyl' ~ interv_dose / 10,
-     #           med == 'hydromorphone' & route == 'iv' ~ interv_dose * 4,
-     #           med == 'hydromorphone' & route == 'enteral' ~ interv_dose * 0.8,
-     #           med == 'oxycodone' ~ interv_dose * 0.4,
-     #           med == 'clonidine' ~ interv_dose,
-     #           med == 'dexmedetomidine' ~ interv_dose,
-     #           med == 'ketamine' ~ interv_dose,
-     #           med == 'pentobarbital' ~ interv_dose,
-     #           med == 'rocuronium' ~ interv_dose,
-     #           med == 'vecuronium' ~ interv_dose * 10,
-     #           med == 'cisatracurium' ~ interv_dose * 20/3,
-     #           TRUE ~ interv_dose
-     #      )
-     # ) %>%
+     # This is used to convert to midazolam and morphine equivalents. Skip
+     # it for now.
+     mutate(
+          interv_dose = case_when(
+               med == 'midazolam' & route == 'iv' ~ interv_dose,
+               med == 'midazolam' & route == 'enteral' ~ interv_dose / 2.5,
+               med == 'lorazepam' ~ interv_dose / 0.5,
+               med == 'clonazepam' ~ interv_dose / 0.25,
+               med == 'diazepam' ~ interv_dose / 4,
+               med == 'morphine' & route == 'iv' ~ interv_dose,
+               med == 'morphine' & route == 'enteral' ~ interv_dose / 3,
+               med == 'fentanyl' ~ interv_dose / 10,
+               med == 'hydromorphone' & route == 'iv' ~ interv_dose  / 0.15,
+               med == 'hydromorphone' & route == 'enteral' ~ interv_dose / 5 / 0.15,
+               med == 'methadone' & route == 'iv' ~ interv_dose,
+               med == 'methadone' & route == 'enteral' ~ interv_dose / 1.5,
+               med == 'oxycodone' ~ interv_dose / 2,
+               med == 'clonidine' ~ interv_dose,
+               med == 'dexmedetomidine' ~ interv_dose,
+               med == 'ketamine' ~ interv_dose,
+               med == 'pentobarbital' ~ interv_dose,
+               med == 'rocuronium' ~ interv_dose,
+               med == 'vecuronium' ~ interv_dose * 10,
+               med == 'cisatracurium' ~ interv_dose * 20/3,
+               TRUE ~ interv_dose
+          )
+     ) %>%
      arrange(mrn, enc_id, med, med_time)
 
      # Remove magic mouthwash
