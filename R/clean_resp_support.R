@@ -90,7 +90,7 @@ clean_resp_support <- function(df_resp) {
 
      # Convert columns to numeric variables where able. Explicitly remove non-numerics.
      df_resp_wide <- df_resp_wide %>%
-          mutate(across(numeric_vars, ~str_remove_all(.x, '[^0-9]'))) %>%
+          mutate(across(numeric_vars, ~str_remove_all(.x, '[^0-9.]'))) %>%
           mutate(across(numeric_vars, ~if_else(.x == '', NA, .x))) %>%
           mutate(across(numeric_vars, as.numeric, na.rm = TRUE))
 

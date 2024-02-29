@@ -144,20 +144,21 @@ classify_resp_support <- function(df_resp_wide,
                bipap_active = case_when(
                     bipap_rate > 0 ~ TRUE,
                     str_detect(niv_mode, 'bipap|niv') ~ TRUE,
-                    epap > 0 ~ TRUE,
-                    ipap > 0 ~ TRUE,
+                    epap > 0 & ipap > 0 & (ipap > epap) ~ TRUE,
                     itime_niv > 0 ~ TRUE,
-                    bipap_status %in% c('started', 'continued') ~ TRUE,
-                    vent_mode %in% c('niv pc') ~ TRUE
+                    # bipap_status %in% c('started', 'continued') ~ TRUE,
+                    vent_mode %in% c('niv pc') ~ TRUE,
+                    o2_deliv_method %in% c('bi-pap mask') ~ TRUE
                ),
 
                # CPAP is ACTIVE...
                cpap_active = case_when(
                     niv_mode %in% c('cpap', 'bubble cpap', 'ncpap') ~ TRUE,
                     vent_mode %in% c('nasalcpap') ~ TRUE,
+                    ipap == epap ~ TRUE,
                     cpap > 0 & !imv_active ~ TRUE,
                     bcpap_status %in% c('started', 'continued') ~ TRUE,
-                    o2_deliv_method %in% c('bubble cpap') ~ TRUE
+                    o2_deliv_method %in% c('bubble cpap', 'cpap prongs', 'cpap mask', 'nasal cushion') ~ TRUE
                ),
 
                # HFNC is ACTIVE
@@ -228,17 +229,28 @@ classify_resp_support <- function(df_resp_wide,
                           'trach_active'), ~ !is.na(.))) %>%
           dplyr::transmute(enc_id = enc_id,
                            resp_meas_time = resp_meas_time,
-                           current_support = zoo::na.locf(
-                                case_when(
+                           current_support = case_when(
                                      hfov_active ~ 'hfov',
                                      imv_active ~ 'imv',
                                      bipap_active ~ 'bipap',
                                      cpap_active ~ 'cpap',
                                      hfnc_active ~ 'hfnc',
                                      simple_o2_active ~ 'simple_o2',
-                                     no_support_active ~ 'room_air'),
-                                na.rm = FALSE,
-                                maxgap = 4)
+                                     no_support_active ~ 'room_air'
+                           )
+                           # # We tried using LOCF but it caused durations
+                           # # to be extended too far.
+                           # current_support = zoo::na.locf(
+                           #      case_when(
+                           #           hfov_active ~ 'hfov',
+                           #           imv_active ~ 'imv',
+                           #           bipap_active ~ 'bipap',
+                           #           cpap_active ~ 'cpap',
+                           #           hfnc_active ~ 'hfnc',
+                           #           simple_o2_active ~ 'simple_o2',
+                           #           no_support_active ~ 'room_air'),
+                           #      na.rm = FALSE,
+                           #      maxgap = 4)
           ) %>%
           filter(!is.na(current_support))
 
