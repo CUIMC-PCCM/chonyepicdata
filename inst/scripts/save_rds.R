@@ -11,7 +11,7 @@ options(scipen = 3)
 # Load configuration files. You may need to edit the file (located in a config folder) with your own filepath.
 # Alternately you can just send in the correct filename.
 load_config(useglobal = TRUE)
-data_path <- data_path_chony
+# data_path <- data_path_chony
 
 # load all encounters
 df_encounters <- load_encounters(paste0(data_path, fname_encounter))
@@ -72,14 +72,13 @@ saveRDS(df_bsa, paste0(data_path, 'bsa_', today(), '.rds'))
 saveRDS(df_temp, paste0(data_path, 'temp_', today(), '.rds'))
 saveRDS(df_vitals_wide, paste0(data_path, 'vitals_', today(), '.rds'))
 
-# Get ventilator support
-df_vent <- load_vent(paste0(data_path, fname_imv))
-df_vent_wide <- clean_vent(df_vent)
-df_vent_episodes <- get_imv_startstop(df_vent_wide, min_inter_ep_duration = 2, min_ep_duration = 12)
+# Get respiratory support
+df_resp <- load_resp_support(paste0(data_path, fname_imv))
+df_resp_wide <- clean_resp_support(df_resp)
+df_resp_support_episodes <- classify_resp_support(df_resp_wide)
 
 mrn_enc <- df_encounters %>% distinct(mrn, enc_id)
-df_vent_episodes <- left_join(df_encounters, df_vent_episodes, multiple = 'all') %>%
-     select(-first_trach_datetime)
+df_resp_support_episodes <- left_join(df_encounters, df_resp_support_episodes, multiple = 'all')
 
 saveRDS(df_vent_wide, paste0(data_path, 'vent_wide_', today(), '.rds'))
 saveRDS(df_vent_episodes, paste0(data_path, 'vent_episodes_', today(), '.rds'))

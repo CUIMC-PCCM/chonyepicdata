@@ -1,25 +1,25 @@
-#' clean_vent
+#' clean_resp_support
 #'
-#' Take ventilator/respiratory file loaded by \link{load_vent}. Clean it a little,
+#' Take respiratory support file loaded by \link{load_resp_support}. Clean it a little,
 #' keep standard valuable rows, and put it into wide format so that each timestamp has
 #' all concurrently-recorded values.
 #'
-#' @param df_vent A long-form data frame of vent/respiratory settings and measurements
+#' @param df_resp A long-form data frame of respiratory settings and measurements
 #'
 #' @return A data frame in wide format with concurrently-recorded respiratory data
 #' @export
 #'
-clean_vent <- function(df_vent) {
+clean_resp_support <- function(df_resp) {
 
      # Required to avoid warnings when building package
-     cpap_rt <- cpap_level <- mrn <- measurement_name <- vent_meas_name <-
+     cpap_rt <- cpap_level <- mrn <- measurement_name <- resp_meas_name <-
           flowsheet_measure_name <- measure_value  <-  NULL
 
      # Categorize useful data and get rid of the rest
-     df_vent_wide <- suppressWarnings(
-          df_vent %>%
+     df_resp_wide <- suppressWarnings(
+          df_resp %>%
                select(-measurement_name) %>%
-               mutate(vent_meas_name = case_when(
+               mutate(resp_meas_name = case_when(
                     flowsheet_measure_name == 'r fs ip vent delta p (amplitude) (set)' ~	'amp_hfov',
                     flowsheet_measure_name == 'nyc ip rt r $$ neonatal cpap' ~	'bcpap_status',
                     flowsheet_measure_name == 'r fs rt bipap total rate' ~	'bipap_rate',
@@ -52,11 +52,11 @@ clean_vent <- function(df_vent) {
                     flowsheet_measure_name == 'nyc ip rt r vent type' ~ 'vent_type',
                     flowsheet_measure_name == 'nyc ip rt r niv tidal vol exhaled' ~	'vt_e'
                )) %>%
-               filter(!is.na(vent_meas_name) & !is.na(measure_value)) %>%
+               filter(!is.na(resp_meas_name) & !is.na(measure_value)) %>%
                select(-flowsheet_measure_name) %>%
                distinct() %>%
-               pivot_wider(id_cols = c('enc_id', 'vent_meas_time'),
-                           names_from = vent_meas_name,
+               pivot_wider(id_cols = c('enc_id', 'resp_meas_time'),
+                           names_from = resp_meas_name,
                            values_from = measure_value) %>%
                # For some reason there are two cpap variables that almost always agree,
                # but occasionally don't. Keep the more frequently populated one, and if it doesn't have a value,
@@ -89,13 +89,13 @@ clean_vent <- function(df_vent) {
                        'vt_e')
 
      # Convert columns to numeric variables where able. Explicitly remove non-numerics.
-     df_vent_wide <- df_vent_wide %>%
+     df_resp_wide <- df_resp_wide %>%
           mutate(across(numeric_vars, ~str_remove_all(.x, '[^0-9]'))) %>%
           mutate(across(numeric_vars, ~if_else(.x == '', NA, .x))) %>%
           mutate(across(numeric_vars, as.numeric, na.rm = TRUE))
 
      # Remove any row where all values are NA
-     df_vent_wide <- df_vent_wide %>% filter(dplyr::if_any(3:dim(df_vent_wide)[2], ~ !is.na(.)))
+     df_resp_wide <- df_resp_wide %>% filter(dplyr::if_any(3:dim(df_resp_wide)[2], ~ !is.na(.)))
 
-     return(df_vent_wide)
+     return(df_resp_wide)
 }
