@@ -55,8 +55,7 @@ df_capd <- load_capd(paste0(data_path, fname_sedation_delirium)) %>%
      arrange(mrn, enc_id, capd_time)
 
 # Get all of the ICD codes across time for these patients.
-df_icd_t21only <- df_icd %>% filter(enc_id %in% t21_enc_id) %>%
-     select(mrn, enc_id, icd10_code, dx_name, dx_date)
+df_icd_t21only <- df_icd %>% filter(enc_id %in% t21_enc_id)
 
 # Load medication data, just for the T21 group
 df_meds <- load_meds(paste0(data_path, fname_ip_meds))
