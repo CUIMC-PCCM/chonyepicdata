@@ -77,14 +77,15 @@ df_resp <- load_resp_support(paste0(data_path, fname_imv))
 df_resp_wide <- clean_resp_support(df_resp)
 df_resp_support_episodes <- classify_resp_support(df_resp_wide)
 
-mrn_enc <- df_encounters %>% distinct(mrn, enc_id)
-df_resp_support_episodes <- left_join(df_encounters, df_resp_support_episodes, multiple = 'all')
+df_encounters_with_resp_support <- inner_join(df_encounters, df_resp_support_episodes, multiple = 'all')
+writexl::write_xlsx(df_encounters_with_resp_support, paste0(data_path, '../output/resp_support_', today(), '.xlsx'))
 
-saveRDS(df_vent_wide, paste0(data_path, 'vent_wide_', today(), '.rds'))
-saveRDS(df_vent_episodes, paste0(data_path, 'vent_episodes_', today(), '.rds'))
 
-df_vent_wide <- readRDS(paste0(data_path, 'vent_wide_2024-01-26.rds'))
-
-list2env(get_rds(file_path = data_path), envir = .GlobalEnv)
+# saveRDS(df_vent_wide, paste0(data_path, 'vent_wide_', today(), '.rds'))
+# saveRDS(df_vent_episodes, paste0(data_path, 'vent_episodes_', today(), '.rds'))
+#
+# df_vent_wide <- readRDS(paste0(data_path, 'vent_wide_2024-01-26.rds'))
+#
+# list2env(get_rds(file_path = data_path), envir = .GlobalEnv)
 
 
