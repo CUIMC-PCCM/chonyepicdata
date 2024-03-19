@@ -24,18 +24,24 @@
 #' However, if the same patient didn't have a new recorded value for 18 hours
 #' representing BiPAP, the "duration" of CPAP will be recorded as just 12 hours.
 #' The time between the end of CPAP and the beginning of BiPAP will be undefined.
+#' @param verbose Logical, representing whether to output current process.
 #' @return A data frame in long format encounter IDs, start and stop times of
 #' respiratory support, and the duration of time
 #' @export
 #'
 classify_resp_support <- function(df_resp_wide,
                                   min_ep_duration = 1,
-                                  max_inter_ep_duration = 4) {
+                                  max_inter_ep_duration = 4,
+                                  verbose = TRUE) {
 
      # Set all variables created externally to NULL to avoid warnings when building
      amp_hfov <- bipap_rate <- cpap <- current_support <- delta_p <- enc_id <- epap <- etco2 <- freq_hfov <- ipap <- itime_niv <- itime_vent <- joingroup <-
           lda_airway <- map_vent <- niv_mode <- o2_deliv_method <- o2_flow_rate <- peep <- pip_set <- resp_meas_time <- support_change <- support_episode <-
           support_time_start <- support_time_stop <- this_duration <- timediff <- timefromlast <- timetonext <- vent_mode <- vent_type <- NULL
+
+     if(verbose) {
+          print('Cleaning and arranging data by levels of support...')
+     }
 
      # First limit to just variables we will use to define an active ventilator
      df_resp <- df_resp_wide %>%
@@ -163,7 +169,8 @@ classify_resp_support <- function(df_resp_wide,
 
                # HFNC is ACTIVE
                hfnc_active = case_when(
-                    o2_deliv_method %in% c('prongs', 'nasal cannula') & o2_flow_rate >=4 ~ TRUE,
+                    # Tried this earlier but it over-identified patients when they were just on traditional NC
+                    # o2_deliv_method %in% c('prongs', 'nasal cannula') & o2_flow_rate >=4 ~ TRUE,
                     o2_deliv_method == 'high flow nasal cannula' ~ TRUE,
                     vent_mode == 'high flow' & o2_deliv_method %in% c('prongs', 'nasal cannula') ~ TRUE,
                     hfnc_status %in% c('started', 'continued') ~ TRUE
@@ -254,6 +261,10 @@ classify_resp_support <- function(df_resp_wide,
           ) %>%
           filter(!is.na(current_support))
 
+     if(verbose) {
+          print('Finding changed levels of support...')
+     }
+
      # Create a new variable indicating change in support level,
      # and another that will flag each distinct episode of support
      # For some reason the variable support_episode sometimes jumps numbers,
@@ -269,6 +280,10 @@ classify_resp_support <- function(df_resp_wide,
 
      # Back this up for a later merge
      df_resp_wide_all_for_merge <- df_resp_all
+
+     if(verbose) {
+          print('Finding start/stop times of changed support levels...')
+     }
 
      # Get start/stop times for each episode of support, and calculate a duration of time
      # The duration of time spans from the beginning of the new episode, to the beginning of
@@ -287,6 +302,10 @@ classify_resp_support <- function(df_resp_wide,
           mutate(timediff = as.duration(support_time_stop - support_time_start)) %>%
           ungroup() %>%
           arrange(enc_id, support_time_start)
+
+     if(verbose) {
+          print('Cleaning episodes shorter than [min_ep_duration] hours and stitching adjacent ones together..')
+     }
 
      # Remove episodes with a duration that is less than 1 hour
      df_resp_all <- df_resp_all %>%
