@@ -1,0 +1,133 @@
+#' get_capd_intervals
+#'
+#' Takes data fram from \link{load_capd} and creates intervals for each patient encounter.
+#' Each interval contains the Cornell Assessment of Pediatric Delirium (CAPD) score,
+#' as well as the duration of time spent at that interval.
+#' Some processing is incorporated to take comatose times into account, during which
+#' a CAPD cannot be scored.
+#'
+#' An interval will last at most max_ep_duration if nothing else is charted.
+#'
+
+#' @param id A character vector of IDs for each unique patient or encounter. Generally taken from
+#' the variable PAT_ENC_CSN_ID, but can also create custom IDs. An example would be to use
+#' PAT_ENC_CSN_ID but also append an identifier (01, 02, 03, etc.) for each PICU hospitalization
+#' or episode of invasive mechanical ventilation.
+#' @param capd A vector of integers ranging from 0 to 32, representing the CAPD for each patient.
+#' @param capd_time A vector of datetime or POSIXct entries corresponding to each CAPD value
+#' @param coma_times A data frame of [lubridate::interval()] objects corresponding to times
+#' when RASS is -4 or -5. CAPD is undefined at this time. If \code{NULL} then this will be skipped.
+#' @param max_inter_ep_duration The maximum number of hours that a particular CAPD will be
+#' extended in the event of a null recording. The default is 12 hours. CAPD may be sparsely recorded.
+#' For any recorded CAPD, the current CAPD will be carried forward for \code{max_inter_ep_duration} hours.
+#' After this amount of time, the interval will be ended. Set this variable to 0 and no intervals will
+#' be created. Set it to NA and the interval will be extended forward indefinitely until a new CAPD is recorded.
+#'
+#' @return A data frame with:
+#' \itemize {
+#'   \item \code{id}: The ID of the patient.
+#'   \item \code{capd}: The CAPD during this interval
+#'   \item \code{capd_time_start}: The start datetime of each interval
+#'   \item \code{capd_time_stop}: The end datetime of each interval
+#'   \item \code{capd_duration}: A [lubridate::duration()] object representing the duration of this interval
+#'   \item \code{delirious}: A logical representing whether the patient is or isn't delirious at this time
+#'   }
+#' @export
+#'
+#' @md
+get_capd_intervals <- function(id, capd, capd_time, coma_times=NULL, max_inter_ep_duration = 12) {
+
+     # ***************************************************************
+     # Initialize variables ------------------------------------------
+     # ***************************************************************
+     capd_change <- capd_episode <- capd_time_start <- capd_time_stop <-
+          timetonext <- NULL
+
+
+     # ***************************************************************
+     # Error-catching ------------------------------------------------
+     # ***************************************************************
+
+     # Make sure variable ID is a character
+     tryCatch({
+
+          if(!is.character(id)) {
+               id <- as.character(id)
+          }
+     },
+     error = function(e) {
+          cat('Error: variable \'id\' must either be a character, or be coercible to a character.')
+          return(NULL)
+     })
+
+     # Make sure variable capd is an integer
+     tryCatch({
+          if(!is.integer(capd)) {
+               capd <- as.integer(capd)
+          }
+     },
+     error = function(e) {
+          cat('Error: variable \'capd\' must either be an integer, or be coercible to an integer')
+          return(NULL)
+     })
+
+     # Make sure variable capd_time is a datetime
+     tryCatch({
+          if(!lubridate::is.POSIXct(capd_time)) {
+               capd_time <- lubridate::as_datetime(capd_time)
+          }
+     },
+     error = function(e) {
+          cat('Error: variable \'capd_time\' must be coercible to a datetime (POSIXct) format')
+          return(NULL)
+     })
+
+     # Make sure all variables have the same length
+     lengths <- c(length(id), length(capd), length(capd_time))
+     if(length(unique(lengths)) > 1) {
+          stop('Error: id, capd, and capd_time all must be the same length')
+     }
+
+
+     # ***************************************************************
+     # Create the data frame -----------------------------------------
+     # ***************************************************************
+
+     # Create the data frame to export. Remove any row with NA data.
+     # Also remove negative numbers
+     df_capd <- tibble(id = id, capd = capd, capd_time = capd_time) %>%
+          filter(!is.na(capd)) %>%
+          filter(capd >= 0)
+
+     # Find times where the CAPD changes and number the episodes
+     df_capd <- df_capd %>%
+          group_by(id) %>%
+          mutate(capd_change = capd != lag(capd, default = -1),
+                 capd_episode = cumsum(capd_change)) %>%
+          ungroup()
+
+     # Get the start and stop of each "interval" of CAPD.
+     # Also find the time until the "next" interval.
+     df_capd <- df_capd %>%
+          group_by(id, capd_episode) %>%
+          reframe(capd_time_start = min(capd_time),
+                  capd_time_stop = max(capd_time)) %>%
+          group_by(id) %>%
+          mutate(timetonext = (lead(capd_time_start, default = max(capd_time_stop)) - capd_time_stop)/dhours(1)) %>%
+          ungroup()
+
+     # Update the end time of each interval to be end of this interval plus max_inter_ep_duration, or
+     # else the time when the next interval started (whichever came first).
+     # As a reminder, if max_inter_ep_duration is NA, then it will default to extending each interval
+     # until the start of the next CAPD. (The final CAPD will be unchanged.)
+     # If max_inter_ep_duration is zero, then no intervals are extended.
+     df_capd <- df_capd %>%
+          group_by(id) %>%
+          mutate(capd_time_stop = pmin(capd_time_stop + hours(max_inter_ep_duration),
+                                       lead(capd_time_start, default = max(capd_time_stop)), na.rm = TRUE),
+                 capd_interval_duration = as.duration(interval(capd_time_start, capd_time_stop))) %>%
+          select(-timetonext)
+
+
+     return(df_capd)
+}

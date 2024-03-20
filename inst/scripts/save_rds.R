@@ -29,9 +29,7 @@ saveRDS(df_picu_startstop, paste0(data_path, 'picu_start_stop_', today(), '.rds'
 # Get RASS scores for all these patients
 df_rass <- load_rass(paste0(data_path, fname_sedation_delirium)) %>%
      arrange(mrn, enc_id, rass_time)
-
 rass_intervals <- get_rass_intervals(df_rass$enc_id, df_rass$rass, df_rass$rass_time, max_inter_ep_duration = 4)
-
 saveRDS(df_rass, paste0(data_path, 'rass_', today(), '.rds'))
 
 # Get CAPD scores for all these patients

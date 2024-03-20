@@ -1,6 +1,8 @@
 #' get_rass_intervals
 #'
 #' Takes data fram from \link{load_rass} and creates intervals for each patient encounter.
+#' Each interval contains the Richmond Agitation Sedation Scale (RASS) score,
+#' as well as the duration of time spent at that interval.
 #' An interval will last at most max_inter_ep_duration if nothing else is charted.
 #'
 
@@ -12,7 +14,7 @@
 #' @param rass_time A vector of datetime or POSIXct entries corresponding to each RASS value
 #' @param max_inter_ep_duration A number, the maximum number of hours that a particular RASS will be
 #' extended in the event of a null recording. RASS may be sparsely recorded. For any recorded RASS,
-#' the current RASS will be carried forward for \code{max_ep_duration} hours. After this amount
+#' the current RASS will be carried forward for \code{max_inter_ep_duration} hours. After this amount
 #' of time, the interval will be ended. Set this variable to 0 and no intervals will be created. Set
 #' it to NA and the interval will be extended forward indefinitely until a new RASS is recorded.
 #'
@@ -43,7 +45,7 @@ get_rass_intervals <- function(id, rass, rass_time, max_inter_ep_duration = 4) {
           return(NULL)
      })
 
-     # Make sure variable rass is an intrger
+     # Make sure variable rass is an integer
      tryCatch({
           if(!is.integer(rass)) {
                rass <- as.integer(rass)
@@ -76,8 +78,7 @@ get_rass_intervals <- function(id, rass, rass_time, max_inter_ep_duration = 4) {
      # Create the data frame -----------------------------------------
      # ***************************************************************
 
-     # Create the data frame to export. Fill in an NA for every hour
-     # where no data exists
+     # Create the data frame to export. Remove any row with RASS equal to NA
      df_rass <- dplyr::tibble(id = id, rass = rass, rass_time = rass_time) %>%
           filter(!is.na(rass))
 
