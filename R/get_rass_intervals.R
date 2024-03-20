@@ -22,6 +22,12 @@
 get_rass_intervals <- function(id, rass, rass_time, max_inter_ep_duration = 4) {
 
      # ***************************************************************
+     # Initialize variables ------------------------------------------
+     # ***************************************************************
+     rass_change <- rass_episode <- rass_time_start <- rass_time_stop <-
+          timetonext <- NULL
+
+     # ***************************************************************
      # Error-catching ------------------------------------------------
      # ***************************************************************
 
@@ -72,7 +78,7 @@ get_rass_intervals <- function(id, rass, rass_time, max_inter_ep_duration = 4) {
 
      # Create the data frame to export. Fill in an NA for every hour
      # where no data exists
-     df_rass <- tibble(id = id, rass = rass, rass_time = rass_time) %>%
+     df_rass <- dplyr::tibble(id = id, rass = rass, rass_time = rass_time) %>%
           filter(!is.na(rass))
 
      # Find times where the RASS changes and number the episodes
@@ -86,10 +92,10 @@ get_rass_intervals <- function(id, rass, rass_time, max_inter_ep_duration = 4) {
      # Also find the time until the "next" interval.
      df_rass <- df_rass %>%
           group_by(id, rass_episode) %>%
-          reframe(rass_time_start = min(rass_time),
+          dplyr::reframe(rass_time_start = min(rass_time),
                   rass_time_stop = max(rass_time)) %>%
           group_by(id) %>%
-          mutate(timetonext = (lead(rass_time_start, default = max(rass_time_stop)) - rass_time_stop)/dhours(1)) %>%
+          mutate(timetonext = (lead(rass_time_start, default = max(rass_time_stop)) - rass_time_stop)/lubridate::dhours(1)) %>%
           ungroup()
 
      # Update the end time of each interval to be end of this interval plus max_inter_ep_duration, or
