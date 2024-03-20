@@ -71,6 +71,35 @@ get_rass_episodes <- function(id, rass, rass_time, max_ep_duration = 4) {
      # Function ------------------------------------------------------
      # ***************************************************************
 
+     # Create the data frame to export. Fill in an NA for every hour
+     # where no data exists
+     df_rass <- tibble(id = id, rass = rass, rass_time = rass_time) %>%
+          mutate()
+
+     # Use a last-one carried forward approach to extend RASS intervals
+     if(max_ep_duration > 0) {
+          df_rass <- df_rass %>%
+               mutate(rass = current_support = zoo::na.locf(
+               #      case_when(
+               #           hfov_active ~ 'hfov',
+               #           imv_active ~ 'imv',
+               #           bipap_active ~ 'bipap',
+               #           cpap_active ~ 'cpap',
+               #           hfnc_active ~ 'hfnc',
+               #           simple_o2_active ~ 'simple_o2',
+               #           no_support_active ~ 'room_air'),
+               #      na.rm = FALSE,
+               #      maxgap = 4)
+          ) %>%
+               filter(!is.na(current_support))
+     }
+
+
+     # Find times where the RASS changes
+     df_rass <- df_rass %>%
+          mutate(rass_change = rass == lag(rass, default = first(rass)))
+
+
 
      return(df_rass)
 }
