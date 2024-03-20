@@ -29,6 +29,9 @@ saveRDS(df_picu_startstop, paste0(data_path, 'picu_start_stop_', today(), '.rds'
 # Get RASS scores for all these patients
 df_rass <- load_rass(paste0(data_path, fname_sedation_delirium)) %>%
      arrange(mrn, enc_id, rass_time)
+
+rass_intervals <- get_rass_intervals(df_rass$enc_id, df_rass$rass, df_rass$rass_time, max_inter_ep_duration = 4)
+
 saveRDS(df_rass, paste0(data_path, 'rass_', today(), '.rds'))
 
 # Get CAPD scores for all these patients
@@ -72,14 +75,13 @@ saveRDS(df_bsa, paste0(data_path, 'bsa_', today(), '.rds'))
 saveRDS(df_temp, paste0(data_path, 'temp_', today(), '.rds'))
 saveRDS(df_vitals_wide, paste0(data_path, 'vitals_', today(), '.rds'))
 
-# Get ventilator support
-df_vent <- load_vent(paste0(data_path, fname_imv))
-df_vent_wide <- clean_vent(df_vent)
-df_vent_episodes <- get_imv_startstop(df_vent_wide, min_inter_ep_duration = 2, min_ep_duration = 12)
+# Get respiratory support
+df_resp <- load_resp_support(paste0(data_path, fname_imv))
+df_resp_wide <- clean_resp_support(df_resp)
+df_resp_support_episodes <- classify_resp_support(df_resp_wide)
 
 mrn_enc <- df_encounters %>% distinct(mrn, enc_id)
-df_vent_episodes <- left_join(df_encounters, df_vent_episodes, multiple = 'all') %>%
-     select(-first_trach_datetime)
+df_resp_support_episodes <- left_join(df_encounters, df_resp_support_episodes, multiple = 'all')
 
 saveRDS(df_vent_wide, paste0(data_path, 'vent_wide_', today(), '.rds'))
 saveRDS(df_vent_episodes, paste0(data_path, 'vent_episodes_', today(), '.rds'))
