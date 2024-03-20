@@ -22,6 +22,54 @@
 #' @examples
 get_rass_episodes <- function(id, rass, rass_time, max_ep_duration = 4) {
 
+     # ***************************************************************
+     # Error-catching ------------------------------------------------
+     # ***************************************************************
+
+     # Make sure variable ID is a character
+     tryCatch({
+
+          if(!is.character(id)) {
+               id <- as.character(id)
+          }
+     },
+     error = function(e) {
+          cat('Error: variable \'id\' must either be a character, or be coercible to a character.')
+          return(NULL)
+     })
+
+     # Make sure variable rass is an intrger
+     tryCatch({
+          if(!is.integer(rass)) {
+               rass <- as.integer(rass)
+          }
+     },
+     error = function(e) {
+          cat('Error: variable \'rass\' must either be an integer, or be coercible to an integer')
+          return(NULL)
+     })
+
+     # Make sure variable rass_time is a datetime
+     tryCatch({
+          if(!lubridate::is.POSIXct(rass_time)) {
+               rass_time <- lubridate::as_datetime(rass_time)
+          }
+     },
+     error = function(e) {
+          cat('Error: variable \'rass_time\' must be coercible to a datetime (POSIXct) format')
+          return(NULL)
+     })
+
+     # Make sure all variables have the same length
+     lengths <- c(length(id), length(rass), length(rass_time))
+     if(length(unique(lengths)) > 1) {
+          stop('Error: id, rass, and rass_time all must be the same length')
+     }
+
+
+     # ***************************************************************
+     # Function ------------------------------------------------------
+     # ***************************************************************
 
 
      return(df_rass)
