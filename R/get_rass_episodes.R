@@ -1,7 +1,7 @@
-#' get_rass_episodes
+#' get_rass_intervals
 #'
 #' Takes data fram from \link{load_rass} and creates intervals for each patient encounter.
-#' An interval will last at most max_ep_duration if nothing else is charted.
+#' An interval will last at most max_inter_ep_duration if nothing else is charted.
 #'
 
 #' @param id A character vector of IDs for each unique patient or encounter. Generally taken from
@@ -10,17 +10,16 @@
 #' or episode of invasive mechanical ventilation.
 #' @param rass A vector of integers ranging from -5 to +4, representing the RASS for each patient.
 #' @param rass_time A vector of datetime or POSIXct entries corresponding to each RASS value
-#' @param max_ep_duration A number, the maximum number of hours that a particular RASS will be
+#' @param max_inter_ep_duration A number, the maximum number of hours that a particular RASS will be
 #' extended in the event of a null recording. RASS may be sparsely recorded. For any recorded RASS,
 #' the current RASS will be carried forward for \code{max_ep_duration} hours. After this amount
 #' of time, the interval will be ended. Set this variable to 0 and no intervals will be created. Set
 #' it to NA and the interval will be extended forward indefinitely until a new RASS is recorded.
 #'
-#' @return A data frame of IDs, RASS, and [lubridate::interval()] objects corresponding to each RASS.
+#' @return A data frame of IDs, RASS, and start/stop times of the intervals, and a duration for each.
 #' @export
 #'
-#' @examples
-get_rass_episodes <- function(id, rass, rass_time, max_ep_duration = 4) {
+get_rass_intervals <- function(id, rass, rass_time, max_inter_ep_duration = 4) {
 
      # ***************************************************************
      # Error-catching ------------------------------------------------
@@ -68,37 +67,42 @@ get_rass_episodes <- function(id, rass, rass_time, max_ep_duration = 4) {
 
 
      # ***************************************************************
-     # Function ------------------------------------------------------
+     # Create the data frame -----------------------------------------
      # ***************************************************************
 
      # Create the data frame to export. Fill in an NA for every hour
      # where no data exists
      df_rass <- tibble(id = id, rass = rass, rass_time = rass_time) %>%
-          mutate()
+          filter(!is.na(rass))
 
-     # Use a last-one carried forward approach to extend RASS intervals
-     if(max_ep_duration > 0) {
-          df_rass <- df_rass %>%
-               mutate(rass = current_support = zoo::na.locf(
-               #      case_when(
-               #           hfov_active ~ 'hfov',
-               #           imv_active ~ 'imv',
-               #           bipap_active ~ 'bipap',
-               #           cpap_active ~ 'cpap',
-               #           hfnc_active ~ 'hfnc',
-               #           simple_o2_active ~ 'simple_o2',
-               #           no_support_active ~ 'room_air'),
-               #      na.rm = FALSE,
-               #      maxgap = 4)
-          ) %>%
-               filter(!is.na(current_support))
-     }
-
-
-     # Find times where the RASS changes
+     # Find times where the RASS changes and number the episodes
      df_rass <- df_rass %>%
-          mutate(rass_change = rass == lag(rass, default = first(rass)))
+          group_by(id) %>%
+          mutate(rass_change = rass != lag(rass, default = 20),
+                 rass_episode = cumsum(rass_change)) %>%
+          ungroup()
 
+     # Get the start and stop of each "interval" of RASS.
+     # Also find the time until the "next" interval.
+     df_rass <- df_rass %>%
+          group_by(id, rass_episode) %>%
+          reframe(rass_time_start = min(rass_time),
+                  rass_time_stop = max(rass_time)) %>%
+          group_by(id) %>%
+          mutate(timetonext = (lead(rass_time_start, default = max(rass_time_stop)) - rass_time_stop)/dhours(1)) %>%
+          ungroup()
+
+     # Update the end time of each interval to be end of this interval plus max_inter_ep_duration, or
+     # else the time when the next interval started (whichever came first).
+     # As a reminder, if max_inter_ep_duration is NA, then it will default to extending each interval
+     # until the start of the next RASS. (The final RASS will be unchanged.)
+     # If max_inter_ep_duration is zero, then no intervals are extended.
+     df_rass <- df_rass %>%
+          group_by(id) %>%
+          mutate(rass_time_stop = pmin(rass_time_stop + hours(max_inter_ep_duration),
+                                       lead(rass_time_start, default = max(rass_time_stop)), na.rm = TRUE),
+                 rass_interval_duration = as.duration(interval(rass_time_start, rass_time_stop))) %>%
+          select(-timetonext)
 
 
      return(df_rass)
