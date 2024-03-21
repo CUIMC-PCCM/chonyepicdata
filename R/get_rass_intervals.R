@@ -93,8 +93,9 @@ get_rass_intervals <- function(id, rass, rass_time, max_inter_ep_duration = 4) {
      # Also find the time until the "next" interval.
      df_rass <- df_rass %>%
           group_by(id, rass_episode) %>%
-          dplyr::reframe(rass_time_start = min(rass_time),
-                  rass_time_stop = max(rass_time)) %>%
+          dplyr::reframe(rass = min(rass),
+                         rass_time_start = min(rass_time),
+                         rass_time_stop = max(rass_time)) %>%
           group_by(id) %>%
           mutate(timetonext = (lead(rass_time_start, default = max(rass_time_stop)) - rass_time_stop)/lubridate::dhours(1)) %>%
           ungroup()

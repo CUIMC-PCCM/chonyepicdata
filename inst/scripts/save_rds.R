@@ -30,11 +30,15 @@ saveRDS(df_picu_startstop, paste0(data_path, 'picu_start_stop_', today(), '.rds'
 df_rass <- load_rass(paste0(data_path, fname_sedation_delirium)) %>%
      arrange(mrn, enc_id, rass_time)
 rass_intervals <- get_rass_intervals(df_rass$enc_id, df_rass$rass, df_rass$rass_time, max_inter_ep_duration = 4)
+df_coma_intervals <- get_coma_intervals(rass_intervals)
 saveRDS(df_rass, paste0(data_path, 'rass_', today(), '.rds'))
 
 # Get CAPD scores for all these patients
 df_capd <- load_capd(paste0(data_path, fname_sedation_delirium)) %>%
      arrange(mrn, enc_id, capd_time)
+# capd_intervals <- get_capd_intervals(df_capd$mrn, df_capd$capd, df_capd$capd_time)
+capd_intervals <- get_capd_intervals(df_capd$mrn, df_capd$capd, df_capd$capd_time, df_coma_intervals)
+
 saveRDS(df_capd, paste0(data_path, 'capd_', today(), '.rds'))
 
 # Load medication data
