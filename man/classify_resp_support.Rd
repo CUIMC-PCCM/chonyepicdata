@@ -7,7 +7,8 @@
 classify_resp_support(
   df_resp_wide,
   min_ep_duration = 1,
-  max_inter_ep_duration = 4
+  max_inter_ep_duration = 4,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -33,6 +34,8 @@ switching to BiPAP, the "duration" of CPAP will be recorded as 14 hours.
 However, if the same patient didn't have a new recorded value for 18 hours
 representing BiPAP, the "duration" of CPAP will be recorded as just 12 hours.
 The time between the end of CPAP and the beginning of BiPAP will be undefined.}
+
+\item{verbose}{Logical, representing whether to output current process.}
 }
 \value{
 A data frame in long format encounter IDs, start and stop times of
