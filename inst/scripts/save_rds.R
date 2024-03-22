@@ -11,7 +11,7 @@ options(scipen = 3)
 # Load configuration files. You may need to edit the file (located in a config folder) with your own filepath.
 # Alternately you can just send in the correct filename.
 load_config(useglobal = TRUE)
-data_path <- data_path_chony
+# data_path <- data_path_chony
 
 # load all encounters
 df_encounters <- load_encounters(paste0(data_path, fname_encounter))
@@ -25,6 +25,17 @@ saveRDS(df_icd, paste0(data_path, 'icd_dx_', today(), '.rds'))
 df_picu_startstop <- get_picu_intervals(paste0(data_path, fname_adt)) %>%
      arrange(mrn, enc_id, icu_start_date)
 saveRDS(df_picu_startstop, paste0(data_path, 'picu_start_stop_', today(), '.rds'))
+
+# Get unique IDs based on PICU encounter (not hospital encounter)
+df_picu_id <- df_picu_startstop %>%
+     group_by(mrn, enc_id) %>%
+     arrange(mrn, enc_id, icu_start_date) %>%
+     reframe(n = row_number(),
+             icu_start_date = icu_start_date,
+             icu_stop_date = icu_stop_date) %>%
+     unite(picu_enc, enc_id, n)
+
+df_picu_blank <- create_blank_series(df_picu_id$picu_enc, df_picu_id$icu_start_date, df_picu_id$icu_stop_date, increment = 'hours')
 
 # Get RASS scores for all these patients
 df_rass <- load_rass(paste0(data_path, fname_sedation_delirium)) %>%
@@ -80,14 +91,15 @@ df_resp <- load_resp_support(paste0(data_path, fname_imv))
 df_resp_wide <- clean_resp_support(df_resp)
 df_resp_support_episodes <- classify_resp_support(df_resp_wide)
 
-mrn_enc <- df_encounters %>% distinct(mrn, enc_id)
-df_resp_support_episodes <- left_join(df_encounters, df_resp_support_episodes, multiple = 'all')
+df_encounters_with_resp_support <- inner_join(df_encounters, df_resp_support_episodes, multiple = 'all')
+writexl::write_xlsx(df_encounters_with_resp_support, paste0(data_path, '../output/resp_support_', today(), '.xlsx'))
 
-saveRDS(df_vent_wide, paste0(data_path, 'vent_wide_', today(), '.rds'))
-saveRDS(df_vent_episodes, paste0(data_path, 'vent_episodes_', today(), '.rds'))
 
-df_vent_wide <- readRDS(paste0(data_path, 'vent_wide_2024-01-26.rds'))
-
-list2env(get_rds(file_path = data_path), envir = .GlobalEnv)
+# saveRDS(df_vent_wide, paste0(data_path, 'vent_wide_', today(), '.rds'))
+# saveRDS(df_vent_episodes, paste0(data_path, 'vent_episodes_', today(), '.rds'))
+#
+# df_vent_wide <- readRDS(paste0(data_path, 'vent_wide_2024-01-26.rds'))
+#
+# list2env(get_rds(file_path = data_path), envir = .GlobalEnv)
 
 
