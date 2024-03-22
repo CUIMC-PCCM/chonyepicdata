@@ -139,12 +139,13 @@ get_capd_intervals <- function(id, capd, capd_time, coma_times=NULL, max_inter_e
                rename(capd_time_start = coma_time_start,
                       capd_time_stop = coma_time_stop)
 
-          df_capd <- bind_rows(df_capd, coma_times) %>%
+          # Update the time duration measurements when the patient was comatose
+          df_capd2 <- bind_rows(df_capd, coma_times) %>%
                group_by(id) %>%
                arrange(id, capd_time_start) %>%
                mutate(capd_episode = row_number()) %>%
                ungroup() %>%
-               mutate(capd_interval_duration = replace_na(capd_interval_duration, as.duration(interval(capd_time_start, capd_time_stop))))
+               mutate(capd_interval_duration = tidyr::replace_na(as.duration(interval(capd_time_start, capd_time_stop))))
      }
 
      # Create a flag for when patient is delirious
