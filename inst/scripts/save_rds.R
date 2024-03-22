@@ -11,7 +11,7 @@ options(scipen = 3)
 # Load configuration files. You may need to edit the file (located in a config folder) with your own filepath.
 # Alternately you can just send in the correct filename.
 load_config(useglobal = TRUE)
-data_path <- data_path_chony
+# data_path <- data_path_chony
 
 # load all encounters
 df_encounters <- load_encounters(paste0(data_path, fname_encounter))
@@ -25,6 +25,17 @@ saveRDS(df_icd, paste0(data_path, 'icd_dx_', today(), '.rds'))
 df_picu_startstop <- get_picu_intervals(paste0(data_path, fname_adt)) %>%
      arrange(mrn, enc_id, icu_start_date)
 saveRDS(df_picu_startstop, paste0(data_path, 'picu_start_stop_', today(), '.rds'))
+
+# Get unique IDs based on PICU encounter (not hospital encounter)
+df_picu_id <- df_picu_startstop %>%
+     group_by(mrn, enc_id) %>%
+     arrange(mrn, enc_id, icu_start_date) %>%
+     reframe(n = row_number(),
+             icu_start_date = icu_start_date,
+             icu_stop_date = icu_stop_date) %>%
+     unite(picu_enc, enc_id, n)
+
+df_picu_blank <- create_blank_series(df_picu_id$picu_enc, df_picu_id$icu_start_date, df_picu_id$icu_stop_date, increment = 'hours')
 
 # Get RASS scores for all these patients
 df_rass <- load_rass(paste0(data_path, fname_sedation_delirium)) %>%
