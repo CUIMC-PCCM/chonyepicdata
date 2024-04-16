@@ -94,6 +94,8 @@ df_resp_support_episodes <- classify_resp_support(df_resp_wide)
 df_encounters_with_resp_support <- inner_join(df_encounters, df_resp_support_episodes, multiple = 'all')
 writexl::write_xlsx(df_encounters_with_resp_support, paste0(data_path, '../output/resp_support_', today(), '.xlsx'))
 
+# Load laboratory data
+df_labs <- load_labs(paste0(data_path, fname_labs))
 
 # saveRDS(df_vent_wide, paste0(data_path, 'vent_wide_', today(), '.rds'))
 # saveRDS(df_vent_episodes, paste0(data_path, 'vent_episodes_', today(), '.rds'))
