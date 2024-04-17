@@ -22,7 +22,7 @@ options(scipen = 3)
 # Load configuration files. You may need to edit the file (located in a config folder) with your own filepath.
 # Alternately you can just send in the correct filename.
 load_config(useglobal = TRUE)
-# data_path <- data_path_chony
+data_path <- data_path_chony
 
 # *****************************************************************************
 # Loading new data ------------------------------------------------------------
@@ -416,6 +416,43 @@ saveRDS(df_icd_nont21, paste0(data_path, '../output/non_t21_icd_', today(), '.rd
 writexl::write_xlsx(df_icd_nont21, paste0(data_path, '../output/non_t21_icd_', today(), '.xlsx'))
 
 # *****************************************************************************
-## Get first 24h data ----------------------------------------------------------
+## Get lab data necessary for pSOFA calculation -------------------------------
 # *****************************************************************************
+
+# Load laboratory data
+df_labs <- load_labs(paste0(data_path, fname_labs))
+
+# Get the necessary labs for scoring pSOFA
+psofa_labnames <- c('platelet count, auto',
+                    'po2 (arterial)',
+                    'bilirubin, total',
+                    'bilirubin, plasma',
+                    'creatinine')
+
+psofa_lab_renames <- c('platelets',
+                       'pao2',
+                       'tbili1',
+                       'tbili2',
+                       'creatinine')
+
+# For some reason there are two total bilirubin labs. Need to combine them. Take the average
+# in the extremely rare case when they coexist.
+# Some data have the format "<300" or ">10" if values are far outside normal ranges.
+# Remove the non-numeric characters, and then convert to numeric.
+df_psofa_labs <- get_labs_by_type(df_labs, labnames = psofa_labnames, labvarnames = psofa_lab_renames) %>%
+     mutate(across(all_of(psofa_lab_renames), ~ str_remove_all(.x, '[^0-9.]'))) %>%
+     mutate(across(all_of(psofa_lab_renames), ~ str_replace_all(.x, '^$', NA_character_))) %>%
+     mutate(across(all_of(psofa_lab_renames), as.numeric)) %>%
+     mutate(tbili = rowMeans(select(., tbili1, tbili2), na.rm = TRUE),
+            tbili = replace_na(tbili, NA)) %>%
+     select(-tbili1, -tbili2)
+
+saveRDS(df_psofa_labs, paste0(data_path, '../output/psofa_labs_', today(), '.rds'))
+writexl::write_xlsx(df_psofa_labs, paste0(data_path, '../output/psofa_labs_', today(), '.xlsx'))
+
+# Load GCS
+df_gcs <-load_gcs(paste0(data_path, fname_advanced_monitoring))
+
+saveRDS(df_gcs, paste0(data_path, '../output/gcs_', today(), '.rds'))
+writexl::write_xlsx(df_psofa_labs, paste0(data_path, '../output/gcs_', today(), '.xlsx'))
 

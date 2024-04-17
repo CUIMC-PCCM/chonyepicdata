@@ -112,6 +112,8 @@ psofa_lab_renames <- c('platelets',
 
 # For some reason there are two total bilirubin labs. Need to combine them. Take the average
 # in the extremely rare case when they coexist.
+# Some data have the format "<300" or ">10" if values are far outside normal ranges.
+# Remove the non-numeric characters, and then convert to numeric.
 df_psofa_labs <- get_labs_by_type(df_labs, labnames = psofa_labnames, labvarnames = psofa_lab_renames) %>%
      mutate(across(all_of(psofa_lab_renames), ~ str_remove_all(.x, '[^0-9.]'))) %>%
      mutate(across(all_of(psofa_lab_renames), ~ str_replace_all(.x, '^$', NA_character_))) %>%
@@ -119,6 +121,8 @@ df_psofa_labs <- get_labs_by_type(df_labs, labnames = psofa_labnames, labvarname
      mutate(tbili = rowMeans(select(., tbili1, tbili2), na.rm = TRUE),
             tbili = replace_na(tbili, NA)) %>%
      select(-tbili1, -tbili2)
+
+
 
 # saveRDS(df_vent_wide, paste0(data_path, 'vent_wide_', today(), '.rds'))
 # saveRDS(df_vent_episodes, paste0(data_path, 'vent_episodes_', today(), '.rds'))
