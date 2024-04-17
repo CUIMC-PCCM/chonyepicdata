@@ -11,7 +11,7 @@ options(scipen = 3)
 # Load configuration files. You may need to edit the file (located in a config folder) with your own filepath.
 # Alternately you can just send in the correct filename.
 load_config(useglobal = TRUE)
-# data_path <- data_path_chony
+data_path <- data_path_chony
 
 # load all encounters
 df_encounters <- load_encounters(paste0(data_path, fname_encounter))
@@ -94,6 +94,31 @@ df_resp_support_episodes <- classify_resp_support(df_resp_wide)
 df_encounters_with_resp_support <- inner_join(df_encounters, df_resp_support_episodes, multiple = 'all')
 writexl::write_xlsx(df_encounters_with_resp_support, paste0(data_path, '../output/resp_support_', today(), '.xlsx'))
 
+# Load laboratory data
+df_labs <- load_labs(paste0(data_path, fname_labs))
+
+# Get the necessary labs for scoring pSOFA
+psofa_labnames <- c('platelet count, auto',
+                    'po2 (arterial)',
+                    'bilirubin, total',
+                    'bilirubin, plasma',
+                    'creatinine')
+
+psofa_lab_renames <- c('platelets',
+                       'pao2',
+                       'tbili1',
+                       'tbili2',
+                       'creatinine')
+
+# For some reason there are two total bilirubin labs. Need to combine them. Take the average
+# in the extremely rare case when they coexist.
+df_psofa_labs <- get_labs_by_type(df_labs, labnames = psofa_labnames, labvarnames = psofa_lab_renames) %>%
+     mutate(across(all_of(psofa_lab_renames), ~ str_remove_all(.x, '[^0-9.]'))) %>%
+     mutate(across(all_of(psofa_lab_renames), ~ str_replace_all(.x, '^$', NA_character_))) %>%
+     mutate(across(all_of(psofa_lab_renames), as.numeric)) %>%
+     mutate(tbili = rowMeans(select(., tbili1, tbili2), na.rm = TRUE),
+            tbili = replace_na(tbili, NA)) %>%
+     select(-tbili1, -tbili2)
 
 # saveRDS(df_vent_wide, paste0(data_path, 'vent_wide_', today(), '.rds'))
 # saveRDS(df_vent_episodes, paste0(data_path, 'vent_episodes_', today(), '.rds'))
