@@ -1,4 +1,4 @@
-#' get_lab_by_type
+#' get_labs_by_type
 #'
 #' Utility function. Returns all labs of a given type or types.
 #'
@@ -14,11 +14,10 @@
 #'
 
 
-get_lab_by_type <- function(df_labs, labnames = NULL, labvarnames = NULL) {
+get_labs_by_type <- function(df_labs, labnames = NULL, labvarnames = NULL) {
 
      # *****************************************************************************
      # Error handling --------------------------------------------------------------
-     # *****************************************************************************
 
      if(is.null(labnames)) {
           stop('must define labnames')
