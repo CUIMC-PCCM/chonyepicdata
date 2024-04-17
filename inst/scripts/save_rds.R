@@ -112,7 +112,7 @@ psofa_lab_renames <- c('platelets',
 
 # For some reason there are two total bilirubin labs. Need to combine them. Take the average
 # in the extremely rare case when they coexist.
-df_psofa_labs <- get_lab_by_type(df_labs, labnames = psofa_labnames, labvarnames = psofa_lab_renames) %>%
+df_psofa_labs <- get_labs_by_type(df_labs, labnames = psofa_labnames, labvarnames = psofa_lab_renames) %>%
      mutate(across(all_of(psofa_lab_renames), ~ str_remove_all(.x, '[^0-9.]'))) %>%
      mutate(across(all_of(psofa_lab_renames), ~ str_replace_all(.x, '^$', NA_character_))) %>%
      mutate(across(all_of(psofa_lab_renames), as.numeric)) %>%
