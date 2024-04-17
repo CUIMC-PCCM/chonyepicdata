@@ -6,9 +6,9 @@
 \usage{
 load_labs(
   labs_filepath,
-  labs_coltypes = list(col_skip(), col_skip(), col_skip(), col_character(),
-    col_datetime(), col_datetime(), col_datetime(), col_character(), col_character(),
-    col_character(), col_character(), col_skip()),
+  labs_coltypes = list(col_skip(), col_skip(), col_skip(), col_character(), col_skip(),
+    col_datetime(), col_skip(), col_character(), col_character(), col_character(),
+    col_character(), col_skip()),
   max_load = Inf
 )
 }

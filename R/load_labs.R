@@ -21,9 +21,9 @@ load_labs <- function(labs_filepath,
                                            col_skip(),	          # ORDER_DATE
                                            col_skip(),	          # LINE
                                            col_character(),	     # PAT_ENC_CSN_ID
-                                           col_datetime(),	     # ORDER_TIME
+                                           col_skip(),	          # ORDER_TIME
                                            col_datetime(),	     # SPECIMEN_TAKEN_TIME
-                                           col_datetime(),	     # RESULT_TIME
+                                           col_skip(),	          # RESULT_TIME
                                            col_character(),	     # DESCRIPTION
                                            col_character(),	     # COMMON_NAME
                                            col_character(),	     # RESULT_VALUE
