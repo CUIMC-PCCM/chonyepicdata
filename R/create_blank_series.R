@@ -26,6 +26,12 @@ create_blank_series <- function(id,
                                 increment = 'hours') {
 
      # *****************************************************************************
+     # Definitions for package creation --------------------------------------------
+     # *****************************************************************************
+
+     timestamp <- NULL
+
+     # *****************************************************************************
      # Error checking --------------------------------------------------------------
      # *****************************************************************************
 
@@ -87,12 +93,12 @@ create_blank_series <- function(id,
      # Function --------------------------------------------------------------------
      # *****************************************************************************
 
-     df_startstop <- tibble(id = id, starttime = starttime, stoptime = stoptime) %>%
-          rowwise() %>%
+     df_startstop <- dplyr::tibble(id = id, starttime = starttime, stoptime = stoptime) %>%
+          dplyr::rowwise() %>%
           mutate(starttime = lubridate::round_date(starttime, unit = increment),
                  stoptime = lubridate::round_date(stoptime, unit = increment)) %>%
           mutate(timestamp = list(seq(from = starttime, to = stoptime, by = increment))) %>%
-          unnest(timestamp) %>%
+          tidyr::unnest(timestamp) %>%
           select(id, timestamp)
 
      return(df_startstop)

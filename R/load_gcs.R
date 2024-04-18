@@ -31,17 +31,32 @@ load_gcs <- function(gcs_filepath,
                      ),
                      max_load = Inf)
 {
+
+
+     # *****************************************************************************
+     # Variable initiation ---------------------------------------------------------
+     # *****************************************************************************
+
+     pat_enc_csn_id <- recorded_time <- cust_list_map_value <- gcs_subc <- mrn <-
+          enc_id <- gcs_time <- gcs_velue <- gcs_verbal <- gcs_eye <- gcs_value <-  NULL
+
+     # *****************************************************************************
+     # Processing ---------------------------------------------------------
+     # *****************************************************************************
+
+     common_name <- enc_id <- specimen_taken_time <- NULL
      # Load in all GCS values
      suppressWarnings({
           df_gcs <- read_delim(gcs_filepath,
-                                col_types = gcs_coltypes,
-                                n_max = max_load,
-                                delim = '|') %>%
+                               col_types = gcs_coltypes,
+                               n_max = max_load,
+                               delim = '|') %>%
                clean_names() %>%
                mutate(across(where(is.character), str_to_lower)) %>%
                rename(enc_id = pat_enc_csn_id, gcs_time = recorded_time)
 
      })
+
 
      # Combine different types of motor, verbal, eye scores
      # We will calculate the overall scores ourselves in case there is ever a problem on the Epic side
@@ -54,8 +69,8 @@ load_gcs <- function(gcs_filepath,
                                       common_name == 'gcs 6m to 2y motor' ~ 'gcs_motor',
                                       # common_name == 'gcs total' ~ 'gcs',
                                       # common_name == 'gcs 6m to 2y total ' ~ 'gcs'
-                                      ),
-                 gcs_value = as.numeric(cust_list_map_value)) %>%
+          ),
+          gcs_value = as.numeric(cust_list_map_value)) %>%
           filter(!is.na(gcs_subc)) %>%
           rename() %>%
           select(mrn, enc_id, gcs_time, gcs_subc, gcs_value) %>%
@@ -65,7 +80,7 @@ load_gcs <- function(gcs_filepath,
      df_gcs <- df_gcs %>%
           group_by(mrn, enc_id, gcs_time, gcs_subc) %>%
           arrange(mrn, enc_id, gcs_time, gcs_subc, gcs_value) %>%
-          slice_head(n=1) %>%
+          dplyr::slice_head(n=1) %>%
           ungroup()
 
      # Now make into a wide dataset. Calculate the overall score

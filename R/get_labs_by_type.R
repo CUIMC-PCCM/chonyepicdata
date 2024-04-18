@@ -17,7 +17,14 @@
 get_labs_by_type <- function(df_labs, labnames = NULL, labvarnames = NULL) {
 
      # *****************************************************************************
+     # Variable initiation ---------------------------------------------------------
+     # *****************************************************************************
+
+     common_name <- enc_id <- specimen_taken_time <- NULL
+
+     # *****************************************************************************
      # Error handling --------------------------------------------------------------
+     # *****************************************************************************
 
      if(is.null(labnames)) {
           stop('must define labnames')
@@ -48,7 +55,7 @@ get_labs_by_type <- function(df_labs, labnames = NULL, labvarnames = NULL) {
 
      # Rename columns if labvarnames exists
      if(!is.null(labvarnames)) {
-          rename_vec <- setNames(labnames, labvarnames)
+          rename_vec <- stats::setNames(labnames, labvarnames)
           df_labs <- df_labs %>%
                rename(!!!rename_vec)
      }

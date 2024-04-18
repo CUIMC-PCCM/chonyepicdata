@@ -416,7 +416,7 @@ saveRDS(df_icd_nont21, paste0(data_path, '../output/non_t21_icd_', today(), '.rd
 writexl::write_xlsx(df_icd_nont21, paste0(data_path, '../output/non_t21_icd_', today(), '.xlsx'))
 
 # *****************************************************************************
-## Get lab data necessary for pSOFA calculation -------------------------------
+## Get data necessary for pSOFA calculation -----------------------------------
 # *****************************************************************************
 
 # Load laboratory data
