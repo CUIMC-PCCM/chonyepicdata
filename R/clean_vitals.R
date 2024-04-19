@@ -34,12 +34,20 @@ clean_vitals <- function(df_vitals) {
                       values_from = meas_value) %>%
           clean_names() %>%
           separate_wider_delim(cols = blood_pressure, names = c('sbp_ni', 'dbp_ni'), delim = '/', too_few = 'align_start') %>%
-          separate_wider_delim(cols = r_fs_arterial_line_blood_pressure, names = c('sbp_art', 'ndbp_art'), delim = '/', too_few = 'align_start') %>%
+          separate_wider_delim(cols = r_fs_arterial_line_blood_pressure, names = c('sbp_art', 'dbp_art'), delim = '/', too_few = 'align_start') %>%
           rename(map_ni = r_fs_map,
                  map_art=r_fs_map_a_line,
                  cvp = r_fs_device_cvp_mean,
                  spo2 = pulse_oximetry,
-                 hr = pulse, resp = respirations)
+                 hr = pulse,
+                 resp = respirations) %>%
+          mutate(across(c(4:last_col()), as.numeric)) %>%
+          select(mrn, enc_id, vital_time, hr, sbp_ni, dbp_ni, map_ni, sbp_art, dbp_art, map_art, resp, spo2, cvp)
+
+     # Add in MAP if it was not calculated
+     df_vitals_wide <- df_vitals_wide %>%
+          mutate(map_ni = coalesce(map_ni, (1/3*sbp_ni + 2/3*dbp_ni)),
+                 map_art = coalesce(map_art, (1/3*sbp_art + 2/3*dbp_art)))
 
      return(df_vitals_wide)
 }
