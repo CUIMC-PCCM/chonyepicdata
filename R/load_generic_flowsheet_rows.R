@@ -1,4 +1,4 @@
-#' get_generic_flowsheet_rows
+#' load_generic_flowsheet_rows
 #'
 #' Send in a flowsheet file of an undefined type, and pull out the relevant rows
 #' in a wide, timestamped format.
@@ -17,7 +17,7 @@
 #' @export
 #'
 
-get_generic_flowsheet_rows <- function(flowsheet_filepath,
+load_generic_flowsheet_rows <- function(flowsheet_filepath,
                                        key_name = 'pat_enc_csn_id',
                                        time_col = NULL,
                                        var_col = NULL,
