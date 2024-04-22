@@ -18,7 +18,7 @@
 #'
 
 load_generic_flowsheet_rows <- function(flowsheet_filepath,
-                                       key_name = 'pat_enc_csn_id',
+                                       key_name = 'PAT_ENC_CSN_ID',
                                        time_col = NULL,
                                        var_col = NULL,
                                        measure_col = NULL,
@@ -98,14 +98,14 @@ load_generic_flowsheet_rows <- function(flowsheet_filepath,
 
      # Rename columns if labvarnames exists
      if(!is.null(rename_vars2)) {
-          rename_vec <- stats::setNames(varnames, rename_vars2)
+          rename_vec <- stats::setNames(varnames2, rename_vars2)
           df_flowsheet <- df_flowsheet %>%
                rename(!!!rename_vec)
      }
 
-     if(!is.null(vars_transform)) {
+     if(!is.null(var_transform)) {
           df_flowsheet <- df_flowsheet %>%
-               mutate(across(all_of(rename_vars2), !!vars_transform))
+               mutate(across(all_of(rename_vars2), !!var_transform))
      }
 
      return(df_flowsheet)
