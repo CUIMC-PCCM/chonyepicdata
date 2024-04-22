@@ -57,6 +57,8 @@ saveRDS(df_meds, paste0(data_path, 'meds_', today(), '.rds'))
 
 # Get vital signs (takes some processing so multiple steps)
 df_vitals <- load_vitals(paste0(data_path, fname_vitals))
+df_vitals_wide <- clean_vitals(df_vitals)
+saveRDS(df_vitals_wide, paste0(data_path, 'vitals_', today(), '.rds'))
 
 df_weight <- df_vitals %>%
      filter(flowsheet_name %in% c('r nyc dry (dosing) weight', 'weight/scale')) %>%
@@ -78,13 +80,11 @@ df_temp <- df_vitals %>%
      clean_names() %>%
      rename(temp_time = vital_time)
 
-df_vitals_wide <- clean_vitals(df_vitals)
 
 saveRDS(df_weight, paste0(data_path, 'weight_', today(), '.rds'))
 saveRDS(df_height, paste0(data_path, 'height_', today(), '.rds'))
 saveRDS(df_bsa, paste0(data_path, 'bsa_', today(), '.rds'))
 saveRDS(df_temp, paste0(data_path, 'temp_', today(), '.rds'))
-saveRDS(df_vitals_wide, paste0(data_path, 'vitals_', today(), '.rds'))
 
 # Get respiratory support
 df_resp <- load_resp_support(paste0(data_path, fname_imv))
