@@ -91,17 +91,22 @@ df_resp <- load_resp_support(paste0(data_path, fname_imv))
 df_resp_wide <- clean_resp_support(df_resp)
 df_resp_support_episodes <- classify_resp_support(df_resp_wide)
 
-# Specifically get FiO2
-df_fio2 <- load_generic_flowsheet_rows(paste0(data_path, fname_imv),
+# Specifically get FiO2 and SpO2
+df_fio2_spo2 <- load_generic_flowsheet_rows(paste0(data_path, fname_imv),
                                        key_name = 'PAT_ENC_CSN_ID',
                                        time_col = 'RECORDED_TIME',
                                        var_col = 'FLOWSHEET_MEASURE_NAME',
                                        measure_col = 'MEASURE_VALUE',
-                                       varnames = 'R FIO2',
-                                       rename_vars = 'fio2',
-                                       max_load = Inf,
-                                       var_transform = as.numeric)
-saveRDS(df_fio2, paste0(data_path, '../output/fio2_', today(), '.rds'))
+                                       varnames = c('R FIO2', 'PULSE OXIMETRY'),
+                                       rename_vars = c('fio2', 'spo2'),
+                                       max_load = Inf)
+
+df_fio2_spo2 <- df_fio2_spo2 %>%
+     mutate(fio2 = as.numeric(fio2),
+            spo2 = as.numeric(spo2)) %>%
+     filter(!is.na(fio2) & !is.na(spo2))
+
+saveRDS(df_fio2, paste0(data_path, '../output/fio2_spo2_', today(), '.rds'))
 
 df_encounters_with_resp_support <- inner_join(df_encounters, df_resp_support_episodes, multiple = 'all')
 writexl::write_xlsx(df_encounters_with_resp_support, paste0(data_path, '../output/resp_support_', today(), '.xlsx'))
