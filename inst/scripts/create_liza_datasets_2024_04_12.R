@@ -5,6 +5,8 @@
 # *****************************************************************************
 #' 4/12/2024
 #'   Added section for patients without trisomy 21
+#' 4/24/2024
+#'   Added section for psofa calculation
 
 
 # *****************************************************************************
@@ -22,7 +24,7 @@ options(scipen = 3)
 # Load configuration files. You may need to edit the file (located in a config folder) with your own filepath.
 # Alternately you can just send in the correct filename.
 load_config(useglobal = TRUE)
-data_path <- data_path_chony
+# data_path <- data_path_chony
 
 # *****************************************************************************
 # Loading new data ------------------------------------------------------------
@@ -30,6 +32,9 @@ data_path <- data_path_chony
 
 # load all encounters
 df_encounters <- load_encounters(paste0(data_path, fname_encounter))
+
+# load MRNs
+df_mrn <- df_encounters %>% distinct(mrn, enc_id)
 
 # Get all ICD codes
 df_icd <- load_icd_dx(paste0(data_path, fname_icd_dx))
@@ -419,6 +424,12 @@ writexl::write_xlsx(df_icd_nont21, paste0(data_path, '../output/non_t21_icd_', t
 ## Get data necessary for pSOFA calculation -----------------------------------
 # *****************************************************************************
 
+# load all encounters
+df_encounters <- load_encounters(paste0(data_path, fname_encounter))
+
+# load MRNs
+df_mrn <- df_encounters %>% distinct(mrn, enc_id)
+
 # Load laboratory data
 df_labs <- load_labs(paste0(data_path, fname_labs))
 
@@ -447,12 +458,79 @@ df_psofa_labs <- get_labs_by_type(df_labs, labnames = psofa_labnames, labvarname
             tbili = replace_na(tbili, NA)) %>%
      select(-tbili1, -tbili2)
 
-saveRDS(df_psofa_labs, paste0(data_path, '../output/psofa_labs_', today(), '.rds'))
-writexl::write_xlsx(df_psofa_labs, paste0(data_path, '../output/psofa_labs_', today(), '.xlsx'))
+# saveRDS(df_psofa_labs, paste0(data_path, '../output/psofa_labs_', today(), '.rds'))
+# writexl::write_xlsx(df_psofa_labs, paste0(data_path, '../output/psofa_labs_', today(), '.xlsx'))
 
 # Load GCS
-df_gcs <-load_gcs(paste0(data_path, fname_advanced_monitoring))
+df_gcs <-load_gcs(paste0(data_path, fname_advanced_monitoring)) %>%
+     select(-mrn)
 
-saveRDS(df_gcs, paste0(data_path, '../output/gcs_', today(), '.rds'))
-writexl::write_xlsx(df_psofa_labs, paste0(data_path, '../output/gcs_', today(), '.xlsx'))
+# saveRDS(df_gcs, paste0(data_path, '../output/gcs_', today(), '.rds'))
+# writexl::write_xlsx(df_gcs, paste0(data_path, '../output/gcs_', today(), '.xlsx'))
+
+# Specifically get FiO2 and SpO2
+df_fio2_spo2 <- load_generic_flowsheet_rows(paste0(data_path, fname_imv),
+                                            key_name = 'PAT_ENC_CSN_ID',
+                                            time_col = 'RECORDED_TIME',
+                                            var_col = 'FLOWSHEET_MEASURE_NAME',
+                                            measure_col = 'MEASURE_VALUE',
+                                            varnames = c('R FIO2', 'PULSE OXIMETRY'),
+                                            rename_vars = c('fio2', 'spo2'),
+                                            max_load = Inf)
+
+df_fio2_spo2 <- df_fio2_spo2 %>%
+     mutate(fio2 = as.numeric(fio2),
+            spo2 = as.numeric(spo2)) %>%
+     filter(!is.na(fio2) & !is.na(spo2)) %>%
+     rename(enc_id = pat_enc_csn_id)
+
+# Now bind this all together
+df_psofa <- full_join(df_psofa_labs, df_fio2_spo2, c('enc_id', 'specimen_taken_time' = 'recorded_time')) %>%
+     full_join(df_gcs, c('enc_id', 'specimen_taken_time' = 'gcs_time')) %>%
+     rename(recorded_time = specimen_taken_time) %>%
+     relocate(enc_id, recorded_time) %>%
+     left_join(df_mrn) %>%
+     relocate(mrn)
+
+# Get a P/F only if they are recorded within 4 hours
+df_fio2 <- df_psofa %>% select(mrn, enc_id, fio2_time = recorded_time, fio2) %>% filter(!is.na(fio2))
+df_spo2 <- df_psofa %>% select(mrn, enc_id, recorded_time, spo2) %>% filter(!is.na(spo2)) %>%
+     mutate(earliest_time = recorded_time - hours(4))
+df_pao2 <- df_psofa %>% select(mrn, enc_id, recorded_time, pao2) %>% filter(!is.na(pao2)) %>%
+     mutate(earliest_time = recorded_time - hours(4))
+
+# Create a lookback join
+lookback_join_by <- join_by(mrn, enc_id, between(fio2_time, earliest_time, recorded_time))
+
+# Join the limited data frames and calculate the ratios. Only keep the value based on
+# the most recently-recorded FiO2 at any given recorded_time
+df_pf_ratio <- inner_join(df_fio2, df_pao2, by = lookback_join_by) %>%
+     group_by(mrn, enc_id, recorded_time) %>%
+     mutate(pf_ratio = round(pao2/fio2*100)) %>%
+     arrange(mrn, enc_id, recorded_time, desc(fio2_time)) %>%
+     slice_head(n=1) %>%
+     ungroup() %>%
+     arrange(mrn, enc_id, recorded_time) %>%
+     select(mrn, enc_id, recorded_time, pf_ratio)
+
+df_sf_ratio <- inner_join(df_fio2, df_spo2, by = lookback_join_by) %>%
+     group_by(mrn, enc_id, recorded_time) %>%
+     mutate(sf_ratio = round(spo2/fio2*100)) %>%
+     arrange(mrn, enc_id, recorded_time, desc(fio2_time)) %>%
+     slice_head(n=1) %>%
+     ungroup() %>%
+     arrange(mrn, enc_id, recorded_time) %>%
+     select(mrn, enc_id, recorded_time, sf_ratio)
+
+# Join back to the main dataset
+df_psofa <- df_psofa %>% left_join(df_pf_ratio) %>%
+     left_join(df_sf_ratio) %>%
+     arrange(mrn, enc_id, recorded_time)
+
+saveRDS(df_psofa, paste0(data_path, '../output/df_psofa_', today(), '.rds'))
+writexl::write_xlsx(df_psofa, paste0(data_path, '../output/df_psofa_', today(), '.xlsx'))
+
+
+
+
 

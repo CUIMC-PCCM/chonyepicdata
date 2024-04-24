@@ -11,7 +11,7 @@ options(scipen = 3)
 # Load configuration files. You may need to edit the file (located in a config folder) with your own filepath.
 # Alternately you can just send in the correct filename.
 load_config(useglobal = TRUE)
-data_path <- data_path_chony
+# data_path <- data_path_chony
 
 # load all encounters
 df_encounters <- load_encounters(paste0(data_path, fname_encounter))
@@ -106,7 +106,7 @@ df_fio2_spo2 <- df_fio2_spo2 %>%
             spo2 = as.numeric(spo2)) %>%
      filter(!is.na(fio2) & !is.na(spo2))
 
-saveRDS(df_fio2, paste0(data_path, '../output/fio2_spo2_', today(), '.rds'))
+saveRDS(df_fio2_spo2, paste0(data_path, '../output/fio2_spo2_', today(), '.rds'))
 
 df_encounters_with_resp_support <- inner_join(df_encounters, df_resp_support_episodes, multiple = 'all')
 writexl::write_xlsx(df_encounters_with_resp_support, paste0(data_path, '../output/resp_support_', today(), '.xlsx'))
