@@ -522,10 +522,118 @@ df_sf_ratio <- inner_join(df_fio2, df_spo2, by = lookback_join_by) %>%
      arrange(mrn, enc_id, recorded_time) %>%
      select(mrn, enc_id, recorded_time, sf_ratio)
 
-# Join back to the main dataset
+# Get the vitals signs
+df_vitals <- load_vitals(paste0(data_path, fname_vitals))
+df_vitals <- clean_vitals(df_vitals)
+df_map <- df_vitals %>%
+     mutate(map_ni = if_else(map_ni %in% 15:180, map_ni, NA),
+            map_art = if_else(map_art %in% 15:180, map_art, NA)) %>%
+     filter(!(is.na(map_art) & is.na(map_ni))) %>%
+     mutate(map = coalesce(map_art, map_ni)) %>%
+     select(enc_id, recorded_time = vital_time, map) %>%
+     distinct()
+
+# Join all to the main dataset
 df_psofa <- df_psofa %>% left_join(df_pf_ratio) %>%
      left_join(df_sf_ratio) %>%
+     left_join(df_map) %>%
      arrange(mrn, enc_id, recorded_time)
+
+
+# Now get a set of all PICU start/stop datetimes
+df_picu_startstop <- df_picu_startstop %>%
+     arrange(mrn, enc_id, icu_start_date)
+
+# Join based on encounter ID, and whether the intervals for (vent start, vent stop) and (icu start, icu stop)
+# have any overlap. This ensures we include patients intubated in the ED or a procedural area
+by <- join_by(enc_id, overlaps(x$vent_time_start, x$vent_time_stop, y$icu_start_date, y$icu_stop_date))
+df_vent_episodes <- left_join(df_vent_episodes, df_picu_startstop, by) %>%
+     inner_join(df_encounters, by = c('mrn', 'enc_id')) %>%
+     select(mrn, enc_id, hospital_admission_date, hospital_discharge_date, icu_start_date, icu_stop_date,
+            vent_episode, vent_time_start, vent_time_stop, timediff, first_trach_datetime)
+df_vent_episodes <- df_vent_episodes %>% select(-first_trach_datetime)
+
+# We are now going to look at drug exposure. The start/stop times will be defined by start/stop
+# of ventilation. We later may use pre/post drug exposure.
+time_limits <- df_vent_episodes %>%
+     mutate(picu_intervals = interval(vent_time_start, vent_time_start + hours(24))) %>%
+     select(enc_id, picu_intervals)
+
+# Get all medications
+mar_med_stopped = c('held',
+                    'held by provider',
+                    'mar hold',
+                    'stopped (dual sign required)',
+                    'stopped',
+                    'stop infusion')
+
+mar_med_given =   c('anesthesia volume adjustment',
+                    'bolus from bag (dual sign required)',
+                    'bolus from bag',
+                    'continue to inpatient floor',
+                    'continued from or',
+                    'continued from pre',
+                    'given by other',
+                    'given during downtime',
+                    'given',
+                    'handoff (dual sign required)',
+                    'handoff',
+                    'new bag',
+                    'new bag/syringe/cartridge',
+                    'override pull',
+                    'rate change',
+                    'rate verify',
+                    'rate/dose change',
+                    'rate/dose changed',
+                    'rate/dose verify',
+                    'rate/dose verify','bolus',
+                    'restarted (dual sign required)',
+                    'restarted',
+                    'started during downtime',
+                    'started',
+                    'unheld by provider',
+                    'verification')
+
+df_meds <- load_meds(paste0(data_path, fname_ip_meds), max_load = Inf)
+
+# Just get pressor infusions
+df_meds_pressor <- df_meds %>%
+     filter(str_detect(med_name, 'epinephrine|norepinephrine|dopamine|dobutamine')) %>%
+     filter(dose_unit == 'mcg/kg/min' | frequency == 'continuous') %>%
+     mutate(dose = if_else(result %in% mar_med_stopped, 0, dose)) %>%
+     mutate(dose = replace_na(dose, 0)) %>%
+     filter(result %in% c(mar_med_given, mar_med_stopped)) %>%
+     mutate(med = case_when(str_detect(med_name, 'norepinephrine') ~ 'norepi',
+                            str_detect(med_name, 'epinephrine') ~ 'epi',
+                            str_detect(med_name, 'dopamine') ~ 'dopa',
+                            str_detect(med_name, 'dobutamine') ~ 'dobut',
+                            TRUE ~ 'OTHER')) %>%
+     select(mrn, enc_id, taken_time, med, dose, result)
+
+# Now get change times
+df_meds_changed <- df_meds_pressor %>%
+     group_by(enc_id, med) %>%
+     arrange(enc_id, med, taken_time) %>%
+     filter(dose != lag(dose, default = -1))
+
+# Now get dosing intervals
+df_meds_dose_intervals <- df_meds_changed %>%
+     group_by(enc_id, med) %>%
+     arrange(enc_id, med, taken_time) %>%
+     mutate(dose_interval = interval(taken_time, lead(taken_time))) %>%
+     ungroup()
+
+df_meds_dose_intervals <- df_meds_dose_intervals %>%
+     inner_join(time_limits) %>%
+     filter(int_overlaps(picu_intervals, dose_interval)) %>%
+     rename(imv_first_24h = picu_intervals) %>%
+     group_by(enc_id, med) %>%
+     summarize(max_dose = max(dose)) %>%
+     ungroup()
+
+# Now make a wide dataset
+
+
 
 saveRDS(df_psofa, paste0(data_path, '../output/df_psofa_', today(), '.rds'))
 writexl::write_xlsx(df_psofa, paste0(data_path, '../output/df_psofa_', today(), '.xlsx'))

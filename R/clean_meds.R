@@ -229,25 +229,31 @@ clean_meds <- function(df_meds,
      # Remove any rows that are not within the user-specified time intervals
      # for a given encounter
      if(exists('time_limits')) {
-          tryCatch({
-               intcolname <- sym(names(time_limits)[2])
+          if(!is.na(time_limits)) {
+               tryCatch(
+                    {
+                         intcolname <- sym(names(time_limits)[2])
 
-               # Create a row number for each PICU hospitalization
-               time_limits <- time_limits %>%
-                    group_by(enc_id) %>%
-                    mutate(picu_stay_num = row_number()) %>%
-                    ungroup()
+                         # Create a row number for each PICU hospitalization
+                         time_limits <- time_limits %>%
+                              group_by(enc_id) %>%
+                              mutate(picu_stay_num = row_number()) %>%
+                              ungroup()
 
-               # Only keep rows that were given during a PICU hospitalization period
-               # Then, append the number of the encounter to the end of the encounter
-               # ID so that we keep these PICU stays separate.
-               df_meds <- df_meds %>%
-                    inner_join(time_limits, multiple = 'all', by = 'enc_id') %>%
-                    filter(med_time %within% !!intcolname) %>%
-                    select(-!!intcolname) %>%
-                    tidyr::unite(col = 'enc_id', sep = '#', enc_id, picu_stay_num)
+                         # Only keep rows that were given during a PICU hospitalization period
+                         # Then, append the number of the encounter to the end of the encounter
+                         # ID so that we keep these PICU stays separate.
+                         df_meds <- df_meds %>%
+                              inner_join(time_limits, multiple = 'all', by = 'enc_id') %>%
+                              filter(med_time %within% !!intcolname) %>%
+                              select(-!!intcolname) %>%
+                              tidyr::unite(col = 'enc_id', sep = '#', enc_id, picu_stay_num)
+                    },
+                    error = function(x){
+                         warning(x)
+                    }
+               )
           }
-          )
      }
 
 
@@ -311,6 +317,7 @@ clean_meds <- function(df_meds,
                  med = str_remove_all(med, 'sodium succinate'),
                  med = str_remove_all(med, 'sod suc'),
                  med = str_remove_all(med, ' pf '),
+                 med = str_remove_all(med, 'titratable'),
                  med = str_remove_all(med, 'concentrate'),
                  med = str_replace_all(med, 'morphine', 'morphine \\(morphine\\)'),
                  med = str_replace_all(med, '\\(human\\) \\(gammagard s/d\\)', '(\\gammagard\\)'),
@@ -413,9 +420,9 @@ clean_meds <- function(df_meds,
                  med = str_remove_all(med, 'generic'),
                  med = str_squish(med)
           )
-          # ) %>%
-          # select(mrn, enc_id, med, dose, units, frequency, route, conc, conc_unit, infusion_rate,
-          #        med_time, mar_result)
+     # ) %>%
+     # select(mrn, enc_id, med, dose, units, frequency, route, conc, conc_unit, infusion_rate,
+     #        med_time, mar_result)
 
 
      # Correct a few meds with confusing names
@@ -448,6 +455,13 @@ clean_meds <- function(df_meds,
      # per hour
      df_meds <- df_meds %>%
           filter(route != 'patch')
+
+     # Finally, filter AGAIN because after correcting some names, there are a few things
+     # that might have matched once (like racepinephrine) that no longer do
+     if(!all(is.na(medlist))) {
+          df_meds <- df_meds %>%
+               filter(str_detect(med, med_str))
+     }
 
      # *****************************************************************************
      # Infusions vs bolus ----------------------------------------------------------
@@ -604,34 +618,34 @@ clean_meds <- function(df_meds,
           mutate(type = 'bolus')
 
      all_doses <- bind_rows(stack_infuse, stack_bolus) %>%
-     # This is used to convert to midazolam and morphine equivalents. Skip
-     # it for now.
-     mutate(
-          interv_dose = case_when(
-               med == 'midazolam' & route == 'iv' ~ interv_dose,
-               med == 'midazolam' & route == 'enteral' ~ interv_dose / 2.5,
-               med == 'lorazepam' ~ interv_dose / 0.5,
-               med == 'clonazepam' ~ interv_dose / 0.25,
-               med == 'diazepam' ~ interv_dose / 4,
-               med == 'morphine' & route == 'iv' ~ interv_dose,
-               med == 'morphine' & route == 'enteral' ~ interv_dose / 3,
-               med == 'fentanyl' ~ interv_dose / 10,
-               med == 'hydromorphone' & route == 'iv' ~ interv_dose  / 0.15,
-               med == 'hydromorphone' & route == 'enteral' ~ interv_dose / 5 / 0.15,
-               med == 'methadone' & route == 'iv' ~ interv_dose,
-               med == 'methadone' & route == 'enteral' ~ interv_dose / 1.5,
-               med == 'oxycodone' ~ interv_dose / 2,
-               med == 'clonidine' ~ interv_dose,
-               med == 'dexmedetomidine' ~ interv_dose,
-               med == 'ketamine' ~ interv_dose,
-               med == 'pentobarbital' ~ interv_dose,
-               med == 'rocuronium' ~ interv_dose,
-               med == 'vecuronium' ~ interv_dose * 10,
-               med == 'cisatracurium' ~ interv_dose * 20/3,
-               TRUE ~ interv_dose
-          )
-     ) %>%
-     arrange(mrn, enc_id, med, med_time)
+          # This is used to convert to midazolam and morphine equivalents. Skip
+          # it for now.
+          mutate(
+               interv_dose = case_when(
+                    med == 'midazolam' & route == 'iv' ~ interv_dose,
+                    med == 'midazolam' & route == 'enteral' ~ interv_dose / 2.5,
+                    med == 'lorazepam' ~ interv_dose / 0.5,
+                    med == 'clonazepam' ~ interv_dose / 0.25,
+                    med == 'diazepam' ~ interv_dose / 4,
+                    med == 'morphine' & route == 'iv' ~ interv_dose,
+                    med == 'morphine' & route == 'enteral' ~ interv_dose / 3,
+                    med == 'fentanyl' ~ interv_dose / 10,
+                    med == 'hydromorphone' & route == 'iv' ~ interv_dose  / 0.15,
+                    med == 'hydromorphone' & route == 'enteral' ~ interv_dose / 5 / 0.15,
+                    med == 'methadone' & route == 'iv' ~ interv_dose,
+                    med == 'methadone' & route == 'enteral' ~ interv_dose / 1.5,
+                    med == 'oxycodone' ~ interv_dose / 2,
+                    med == 'clonidine' ~ interv_dose,
+                    med == 'dexmedetomidine' ~ interv_dose,
+                    med == 'ketamine' ~ interv_dose,
+                    med == 'pentobarbital' ~ interv_dose,
+                    med == 'rocuronium' ~ interv_dose,
+                    med == 'vecuronium' ~ interv_dose * 10,
+                    med == 'cisatracurium' ~ interv_dose * 20/3,
+                    TRUE ~ interv_dose
+               )
+          ) %>%
+          arrange(mrn, enc_id, med, med_time)
 
      # Remove magic mouthwash
      all_doses <- all_doses %>%
