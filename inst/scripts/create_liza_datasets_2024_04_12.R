@@ -7,6 +7,8 @@
 #'   Added section for patients without trisomy 21
 #' 4/24/2024
 #'   Added section for psofa calculation
+#' 4/25/2024
+#'   Updated to work with classify_resp_support()
 
 
 # *****************************************************************************
@@ -24,7 +26,7 @@ options(scipen = 3)
 # Load configuration files. You may need to edit the file (located in a config folder) with your own filepath.
 # Alternately you can just send in the correct filename.
 load_config(useglobal = TRUE)
-# data_path <- data_path_chony
+data_path <- data_path_chony
 
 # *****************************************************************************
 # Loading new data ------------------------------------------------------------
@@ -38,30 +40,32 @@ df_mrn <- df_encounters %>% distinct(mrn, enc_id)
 
 # Get all ICD codes
 df_icd <- load_icd_dx(paste0(data_path, fname_icd_dx))
+# readRDS(paste0(data_loc, 'icd_dx_2024-01-23.rds'))
 
 # Find all patients with a code for Trisomy 21
 t21_mrn <- df_icd %>% filter(str_detect(icd10_code, '^Q90')) %>%
      distinct(mrn) %>% pull()
 
 # Limit the list of encounters to those with a T21 diagnosis
-df_encounters <- df_encounters %>% filter(mrn %in% t21_mrn)
+df_encounters <- df_encounters %>%
+     mutate(t21 = if_else(mrn %in% t21_mrn, TRUE, FALSE, FALSE))
 
 # Get a list of just the encounter IDs
-t21_enc_id <- df_encounters %>% distinct(enc_id) %>% pull()
+t21_enc_id <- df_encounters %>% filter(t21) %>% distinct(enc_id) %>% pull()
 
 # Now get a set of all PICU start/stop datetimes for these encounters
 df_picu_startstop <- get_picu_intervals(paste0(data_path, fname_adt)) %>%
-     filter(enc_id %in% t21_enc_id) %>%
+     # filter(enc_id %in% t21_enc_id) %>%
      arrange(mrn, enc_id, icu_start_date)
 
 # Get RASS scores for all these patients
 df_rass <- load_rass(paste0(data_path, fname_sedation_delirium)) %>%
-     filter(enc_id %in% t21_enc_id) %>%
+     # filter(enc_id %in% t21_enc_id) %>%
      arrange(mrn, enc_id, rass_time)
 
 # Get CAPD scores for all these patients
 df_capd <- load_capd(paste0(data_path, fname_sedation_delirium)) %>%
-     filter(enc_id %in% t21_enc_id) %>%
+     # filter(enc_id %in% t21_enc_id) %>%
      arrange(mrn, enc_id, capd_time)
 
 # Get all of the ICD codes across time for these patients.
@@ -69,22 +73,30 @@ df_icd_t21only <- df_icd %>% filter(enc_id %in% t21_enc_id)
 
 # Load medication data, just for the T21 group
 df_meds <- load_meds(paste0(data_path, fname_ip_meds))
-df_meds <- df_meds %>% filter(mrn %in% t21_mrn)
+# df_meds <- df_meds %>% filter(mrn %in% t21_mrn)
 
 # Get ventilator data and just limit to patient encounters we are interested in
-df_vent <- load_vent(paste0(data_path, fname_imv))
-df_vent <- df_vent %>% filter(enc_id %in% t21_enc_id)
-df_vent_wide <- clean_vent(df_vent)
-df_vent_episodes <- get_imv_startstop(df_vent_wide)
+df_vent <- load_resp_support(paste0(data_path, fname_imv))
+# df_vent <- df_vent %>% filter(enc_id %in% t21_enc_id)
+df_vent_wide <- clean_resp_support(df_vent)
+df_vent_episodes <- classify_resp_support(df_vent_wide)
+df_vent_episodes.bak <- df_vent_episodes # Back this one up in case we need to get it back
+df_vent_episodes <- df_vent_episodes %>% filter(current_support == 'imv') %>%
+     rename(vent_time_start = support_time_start,
+            vent_time_stop = support_time_stop,
+            vent_episode = support_episode) %>%
+     group_by(enc_id) %>%
+     arrange(vent_episode) %>%
+     mutate(vent_episode = row_number()) %>%
+     ungroup()
 
 # Join based on encounter ID, and whether the intervals for (vent start, vent stop) and (icu start, icu stop)
 # have any overlap. This ensures we include patients intubated in the ED or a procedural area
 by <- join_by(enc_id, overlaps(x$vent_time_start, x$vent_time_stop, y$icu_start_date, y$icu_stop_date))
 df_vent_episodes <- left_join(df_vent_episodes, df_picu_startstop, by) %>%
      inner_join(df_encounters, by = c('mrn', 'enc_id')) %>%
-     select(mrn, enc_id, hospital_admission_date, hospital_discharge_date, icu_start_date, icu_stop_date,
-            vent_episode, vent_time_start, vent_time_stop, timediff, first_trach_datetime)
-df_vent_episodes <- df_vent_episodes %>% select(-first_trach_datetime)
+     select(mrn, enc_id, t21, hospital_admission_date, hospital_discharge_date, icu_start_date, icu_stop_date,
+            vent_episode, vent_time_start, vent_time_stop, timediff)
 
 # We are now going to look at drug exposure. The start/stop times will be defined by start/stop
 # of ventilation. We later may use pre/post drug exposure.
@@ -103,7 +115,8 @@ df_weights <- load_vitals(paste0(data_path, fname_vitals), vitals_to_load = 'R N
      group_by(enc_id) %>% arrange(enc_id, vital_time) %>%
      slice_head(n=1) %>% ungroup() %>%
      mutate(dosing_weight = as.numeric(meas_value)/35.274) %>%
-     select(enc_id, dosing_weight)
+     select(enc_id, dosing_weight) %>%
+     filter(!is.na(dosing_weight))
 
 # Get medication exposures, just for the T21 cohort, only during valid PICU times, and only for fentanyl,
 # midazolam, and dexmedetomidine. Individual PICU stays will have the encounter ID, with #1, #2, #3, etc
@@ -156,18 +169,16 @@ picu_stay_num <- df_picu_startstop %>%
 med_exposure <- med_exposure %>%
      left_join(picu_stay_num, by = join_by(mrn, enc_id,
                                            overlaps(x$vent_time_start, x$vent_time_stop, y$icu_start_date, y$icu_stop_date))) %>%
-     relocate(mrn, enc_id, hospital_admission_date, hospital_discharge_date,
+     relocate(mrn, enc_id, t21, hospital_admission_date, hospital_discharge_date,
               picu_stay_num, icu_start_date, icu_stop_date,
               vent_ep_num, vent_time_start, vent_time_stop)
 
-# Load laboratory data
-
 # Save the data
-saveRDS(df_vent_episodes, paste0(data_path, '../output/t21_vent_med_exposures_', today(), '.rds'))
-writexl::write_xlsx(df_vent_episodes, paste0(data_path, '../output/t21_vent_med_exposures_', today(), '.xlsx'))
+saveRDS(med_exposure, paste0(data_path, '../output/t21_vent_med_exposures_', today(), '.rds'))
+writexl::write_xlsx(med_exposure, paste0(data_path, '../output/t21_vent_med_exposures_', today(), '.xlsx'))
 
-# Example of how to save:
-writexl::write_xlsx(med_exposure, paste0(data_path, '../output/T21_med_exposure-', today(), '.xlsx'))
+# # Example of how to save:
+# writexl::write_xlsx(med_exposure, paste0(data_path, '../output/T21_med_exposure-', today(), '.xlsx'))
 
 # *****************************************************************************
 # Previously loaded data ------------------------------------------------------
@@ -421,8 +432,11 @@ saveRDS(df_icd_nont21, paste0(data_path, '../output/non_t21_icd_', today(), '.rd
 writexl::write_xlsx(df_icd_nont21, paste0(data_path, '../output/non_t21_icd_', today(), '.xlsx'))
 
 # *****************************************************************************
-## Get data necessary for pSOFA calculation -----------------------------------
+## Get pSOFA data -------------------------------------------------------------
 # *****************************************************************************
+
+# If you just want to load prior data...
+list2env(get_rds(file_path = data_path), envir = .GlobalEnv)
 
 # load all encounters
 df_encounters <- load_encounters(paste0(data_path, fname_encounter))
@@ -539,7 +553,6 @@ df_psofa <- df_psofa %>% left_join(df_pf_ratio) %>%
      left_join(df_map) %>%
      arrange(mrn, enc_id, recorded_time)
 
-
 # Now get a set of all PICU start/stop datetimes
 df_picu_startstop <- df_picu_startstop %>%
      arrange(mrn, enc_id, icu_start_date)
@@ -557,7 +570,7 @@ df_vent_episodes <- df_vent_episodes %>% select(-first_trach_datetime)
 # of ventilation. We later may use pre/post drug exposure.
 time_limits <- df_vent_episodes %>%
      mutate(picu_intervals = interval(vent_time_start, vent_time_start + hours(24))) %>%
-     select(enc_id, picu_intervals)
+     select(enc_id, picu_intervals) %>% distinct()
 
 # Get all medications
 mar_med_stopped = c('held',
@@ -594,7 +607,7 @@ mar_med_given =   c('anesthesia volume adjustment',
                     'unheld by provider',
                     'verification')
 
-df_meds <- load_meds(paste0(data_path, fname_ip_meds), max_load = Inf)
+df_meds <- load_meds(paste0(data_path, fname_ip_meds))
 
 # Just get pressor infusions
 df_meds_pressor <- df_meds %>%
@@ -623,20 +636,66 @@ df_meds_dose_intervals <- df_meds_changed %>%
      mutate(dose_interval = interval(taken_time, lead(taken_time))) %>%
      ungroup()
 
+# Only keep doses that overlap with the first 24 hours of IMV,
+# and then keep the maximmum dose of each med
+# Make sure to group by IMV start/stop, because there may be multiple
+# IMV intervals per encounter
 df_meds_dose_intervals <- df_meds_dose_intervals %>%
      inner_join(time_limits) %>%
      filter(int_overlaps(picu_intervals, dose_interval)) %>%
      rename(imv_first_24h = picu_intervals) %>%
-     group_by(enc_id, med) %>%
+     group_by(enc_id, imv_first_24h, med) %>%
      summarize(max_dose = max(dose)) %>%
      ungroup()
 
+# Remove doses that are zero
+df_meds_dose_intervals <- df_meds_dose_intervals %>%
+     filter(!is.na(max_dose),
+            max_dose >0)
+
 # Now make a wide dataset
+df_pressors_wide <- df_meds_dose_intervals %>%
+     pivot_wider(id_cols = c('enc_id', 'imv_first_24h'),
+                 names_from = 'med',
+                 values_from = 'max_dose') %>%
+     mutate(imv_start = int_start(imv_first_24h)) %>%
+     select(-imv_first_24h) %>%
+     relocate(enc_id, imv_start)
+
+# Join to the pSOFA dataset
+df_psofa_final <- df_psofa %>%
+     left_join(df_pressors_wide)
+
+# Remove any times that were not within the first 24 hours of IMV
+df_psofa_final <- df_psofa_final %>%
+     filter(!(recorded_time %within% interval(imv_start, imv_start + hours(24))))
+
+# Keep only worst values
+df_psofa_final <- df_psofa_final %>%
+     group_by(enc_id, imv_start) %>%
+     summarize(creatinine = max(creatinine, na.rm = TRUE),
+               platelets = min(platelets, na.rm = TRUE),
+               tbili = max(tbili, na.rm = TRUE),
+               gcs = min(gcs, na.rm = TRUE),
+               pf_ratio = min(pf_ratio, na.rm = TRUE),
+               sf_ratio = min(sf_ratio, na.rm = TRUE),
+               map = min(map, na.rm = TRUE),
+               epi = max(epi, na.rm = TRUE),
+               norepi = max(norepi, na.rm = TRUE),
+               dopa = max(dopa, na.rm = TRUE),
+               dobut = max(dobut, na.rm = TRUE))
+
+# Replace Inf values with NA
+df_psofa_final <- df_psofa_final %>%
+     mutate(across(where(is.numeric), ~ if_else(is.infinite(.x), NA, .x)))
+
+df_psofa_final <- df_psofa_final %>%
+     left_join(df_mrn) %>%
+     relocate(mrn)
 
 
-
-saveRDS(df_psofa, paste0(data_path, '../output/df_psofa_', today(), '.rds'))
-writexl::write_xlsx(df_psofa, paste0(data_path, '../output/df_psofa_', today(), '.xlsx'))
+saveRDS(df_psofa_final, paste0(data_path, '../output/df_psofa_', today(), '.rds'))
+writexl::write_xlsx(df_psofa_final, paste0(data_path, '../output/df_psofa_', today(), '.xlsx'))
 
 
 
