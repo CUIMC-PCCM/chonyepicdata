@@ -40,7 +40,7 @@ df_mrn <- df_encounters %>% distinct(mrn, enc_id)
 
 # Get all ICD codes
 df_icd <- load_icd_dx(paste0(data_path, fname_icd_dx))
-# readRDS(paste0(data_loc, 'icd_dx_2024-01-23.rds'))
+# df_icd <- readRDS(paste0(data_path, 'icd_dx_2024-01-23.rds'))
 
 # Find all patients with a code for Trisomy 21
 t21_mrn <- df_icd %>% filter(str_detect(icd10_code, '^Q90')) %>%
@@ -118,9 +118,9 @@ df_weights <- load_vitals(paste0(data_path, fname_vitals), vitals_to_load = 'R N
      select(enc_id, dosing_weight) %>%
      filter(!is.na(dosing_weight))
 
-# Get medication exposures, just for the T21 cohort, only during valid PICU times, and only for fentanyl,
-# midazolam, and dexmedetomidine. Individual PICU stays will have the encounter ID, with #1, #2, #3, etc
-# appended to the end to denote which PICU stay it was
+# Get medication exposures, only when the patient was intubated.
+# Individual PICU stays will have the encounter ID, with #1, #2, #3, etc appended
+# to the end to denote which PICU stay it was
 med_exposure <- clean_meds(df_meds, medlist = c('midazolam',
                                                 'lorazepam',
                                                 'diazepam',
@@ -163,6 +163,7 @@ med_exposure <- med_exposure %>%
 # Now join the PICU stay data
 picu_stay_num <- df_picu_startstop %>%
      group_by(enc_id) %>%
+     arrange(icu_start_date) %>%
      mutate(picu_stay_num = row_number()) %>%
      ungroup()
 
