@@ -445,7 +445,10 @@ clean_meds <- function(df_meds,
           med = str_replace_all(med, 'warfarin.+', 'warfarin'),
           med = str_replace_all(med, 'hydrocortisone.+', 'hydrocortisone'),
           med = str_replace_all(med, 'haloperidol.+', 'haloperidol'),
+          med = str_remove_all(med, 'ultra low dose rounding'),
+          med = str_remove_all(med, 'ultra low dose'),
           med = str_remove_all(med, 'status epi'),
+          med = str_remove_all(med, '-dextrose'),
           med = str_remove_all(med, 'zzz'),
           med = str_trim(med)
      )
