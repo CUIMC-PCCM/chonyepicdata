@@ -88,7 +88,7 @@ clean_resp_support <- function(df_resp) {
                        'rr_vent_meas',
                        'rr_vent_set',
                        'spo2',
-                       'vt_e',)
+                       'vt_e')
 
      # Convert columns to numeric variables where able. Explicitly remove non-numerics.
      df_resp_wide <- df_resp_wide %>%
