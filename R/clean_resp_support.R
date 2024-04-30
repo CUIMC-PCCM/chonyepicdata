@@ -50,7 +50,8 @@ clean_resp_support <- function(df_resp) {
                     flowsheet_measure_name == 'r fs resp ventilator patient' ~	'vent_patient',
                     flowsheet_measure_name == 'r nyc ip rt $$ (adult) vent' ~	'vent_status',
                     flowsheet_measure_name == 'nyc ip rt r vent type' ~ 'vent_type',
-                    flowsheet_measure_name == 'nyc ip rt r niv tidal vol exhaled' ~	'vt_e'
+                    flowsheet_measure_name == 'nyc ip rt r niv tidal vol exhaled' ~	'vt_e',
+                    flowsheet_measure_name == 'pulse oximetry' ~ 'spo2'
                )) %>%
                filter(!is.na(resp_meas_name) & !is.na(measure_value)) %>%
                select(-flowsheet_measure_name) %>%
@@ -83,10 +84,11 @@ clean_resp_support <- function(df_resp) {
                        'p_plat',
                        'peep',
                        'pip_meas',
+                       'pip_set',
                        'rr_vent_meas',
                        'rr_vent_set',
-                       'pip_set',
-                       'vt_e')
+                       'spo2',
+                       'vt_e',)
 
      # Convert columns to numeric variables where able. Explicitly remove non-numerics.
      df_resp_wide <- df_resp_wide %>%
