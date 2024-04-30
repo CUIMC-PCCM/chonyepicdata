@@ -4,7 +4,7 @@
 \name{chonyepicdata-package}
 \alias{chonyepicdata}
 \alias{chonyepicdata-package}
-\title{chonyepicdata: Loads, cleans, and processes CHONY EHR inpatient data from the Epic era (after 2/1/2023)}
+\title{chonyepicdata: Loads, cleans, and processes CHONY EHR inpatient data from the Epic era (after 2/1/2020)}
 \description{
 This section TBD at a later date.
 }
