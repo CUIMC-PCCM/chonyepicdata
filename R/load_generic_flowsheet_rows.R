@@ -73,7 +73,7 @@ load_generic_flowsheet_rows <- function(flowsheet_filepath,
                                      delim = '|',
           ) %>%
                clean_names() %>%
-               select(all_of(c(str_to_lower(key_name), str_to_lower(time_col), str_to_lower(var_col), str_to_lower(measure_col)))) %>%
+               select(dplyr::all_of(c(str_to_lower(key_name), str_to_lower(time_col), str_to_lower(var_col), str_to_lower(measure_col)))) %>%
                mutate(across(where(is.character), str_to_lower))
      })
 
@@ -94,7 +94,7 @@ load_generic_flowsheet_rows <- function(flowsheet_filepath,
 
      # If more than 1 variable is requested, make into a wide format
      df_flowsheet <- df_flowsheet %>%
-          pivot_wider(id_cols = all_of(c(key_name, time_col)),
+          pivot_wider(id_cols = dplyr::all_of(c(key_name, time_col)),
                       names_from = !!sym(var_col),
                       values_from = !!sym(measure_col))
 
@@ -107,7 +107,7 @@ load_generic_flowsheet_rows <- function(flowsheet_filepath,
 
      # if(!is.null(var_transform)) {
      #      df_flowsheet <- df_flowsheet %>%
-     #           mutate(across(all_of(rename_vars), !!var_transform))
+     #           mutate(across(dplyr::all_of(rename_vars), !!var_transform))
      # }
 
      return(df_flowsheet)

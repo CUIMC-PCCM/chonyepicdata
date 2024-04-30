@@ -12,6 +12,18 @@
 #'
 clean_vitals <- function(df_vitals) {
 
+     # *****************************************************************************
+     # Initialize variables --------------------------------------------------------
+     # *****************************************************************************
+
+     mrn <- enc_id <- vital_time <- hr <- sbp_ni <- dbp_ni <- map_ni <- sbp_art <-
+          dbp_art <- map_art <- resp <- spo2 <- cvp <- NULL
+
+     # *****************************************************************************
+     # Function --------------------------------------------------------------------
+     # *****************************************************************************
+
+
      # Required to avoid warnings when building package
      common_name <- cust_list_map_value <- flowsheet_name <- meas_value <-
           blood_pressure <- r_fs_arterial_line_blood_pressure <- r_fs_map <-
@@ -41,13 +53,13 @@ clean_vitals <- function(df_vitals) {
                  spo2 = pulse_oximetry,
                  hr = pulse,
                  resp = respirations) %>%
-          mutate(across(c(4:last_col()), as.numeric)) %>%
+          mutate(across(c(4:dplyr::last_col()), as.numeric)) %>%
           select(mrn, enc_id, vital_time, hr, sbp_ni, dbp_ni, map_ni, sbp_art, dbp_art, map_art, resp, spo2, cvp)
 
      # Add in MAP if it was not calculated
      df_vitals_wide <- df_vitals_wide %>%
-          mutate(map_ni = round(coalesce(map_ni, (1/3*sbp_ni + 2/3*dbp_ni))),
-                 map_art = round(coalesce(map_art, (1/3*sbp_art + 2/3*dbp_art))))
+          mutate(map_ni = round(dplyr::coalesce(map_ni, (1/3*sbp_ni + 2/3*dbp_ni))),
+                 map_art = round(dplyr::coalesce(map_art, (1/3*sbp_art + 2/3*dbp_art))))
 
      return(df_vitals_wide)
 }
