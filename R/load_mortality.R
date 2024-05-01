@@ -19,7 +19,7 @@ load_mortality <- function(mortality_filepath,
 {
 
      # Required to avoid warnings when building package
-     mrn <- death_date <- coltypes_mortality <- NULL
+     mrn <- death_date <- NULL
 
      df_mortality <- read_delim(paste0(mortality_filepath),
                                  delim = '|',
