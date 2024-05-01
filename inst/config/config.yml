@@ -20,4 +20,5 @@ fname_op_encounters: report13_op_encounters.txt
 fname_op_notes: report14_op_notes.txt
 fname_op_diagnoses: report15_op_diagnoses.txt
 fname_op_meds: report16_op_medication.txt
+fname_mortality: death_date_4-22-24.txt
 ---
