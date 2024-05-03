@@ -26,7 +26,7 @@ options(scipen = 3)
 # Load configuration files. You may need to edit the file (located in a config folder) with your own filepath.
 # Alternately you can just send in the correct filename.
 load_config(useglobal = TRUE)
-data_path <- data_path_chony
+# data_path <- data_path_chony
 
 # *****************************************************************************
 # Loading new data ------------------------------------------------------------
@@ -39,8 +39,8 @@ df_encounters <- load_encounters(paste0(data_path, fname_encounter))
 df_mrn <- df_encounters %>% distinct(mrn, enc_id)
 
 # Get all ICD codes
-df_icd <- load_icd_dx(paste0(data_path, fname_icd_dx))
-# df_icd <- readRDS(paste0(data_path, 'icd_dx_2024-01-23.rds'))
+# df_icd <- load_icd_dx(paste0(data_path, fname_icd_dx))
+df_icd <- readRDS(paste0(data_path, 'icd_dx_2024-01-23.rds'))
 
 # Find all patients with a code for Trisomy 21
 t21_mrn <- df_icd %>% filter(str_detect(icd10_code, '^Q90')) %>%
@@ -175,8 +175,8 @@ med_exposure <- med_exposure %>%
               vent_ep_num, vent_time_start, vent_time_stop)
 
 # Save the data
-saveRDS(med_exposure, paste0(data_path, '../output/t21_vent_med_exposures_', today(), '.rds'))
-writexl::write_xlsx(med_exposure, paste0(data_path, '../output/t21_vent_med_exposures_', today(), '.xlsx'))
+# saveRDS(med_exposure, paste0(data_path, '../output/t21_vent_med_exposures_', today(), '.rds'))
+# writexl::write_xlsx(med_exposure, paste0(data_path, '../output/t21_vent_med_exposures_', today(), '.xlsx'))
 
 # # Example of how to save:
 # writexl::write_xlsx(med_exposure, paste0(data_path, '../output/T21_med_exposure-', today(), '.xlsx'))
@@ -560,12 +560,12 @@ df_picu_startstop <- df_picu_startstop %>%
 
 # Join based on encounter ID, and whether the intervals for (vent start, vent stop) and (icu start, icu stop)
 # have any overlap. This ensures we include patients intubated in the ED or a procedural area
-by <- join_by(enc_id, overlaps(x$vent_time_start, x$vent_time_stop, y$icu_start_date, y$icu_stop_date))
-df_vent_episodes <- left_join(df_vent_episodes, df_picu_startstop, by) %>%
-     inner_join(df_encounters, by = c('mrn', 'enc_id')) %>%
-     select(mrn, enc_id, hospital_admission_date, hospital_discharge_date, icu_start_date, icu_stop_date,
-            vent_episode, vent_time_start, vent_time_stop, timediff, first_trach_datetime)
-df_vent_episodes <- df_vent_episodes %>% select(-first_trach_datetime)
+# by <- join_by(mrn, enc_id, overlaps(x$vent_time_start, x$vent_time_stop, y$icu_start_date, y$icu_stop_date))
+# df_vent_episodes <- left_join(df_vent_episodes, df_picu_startstop, by) %>%
+#      inner_join(df_encounters, by = c('mrn', 'enc_id')) %>%
+#      select(mrn, enc_id, hospital_admission_date, hospital_discharge_date, icu_start_date, icu_stop_date,
+#             vent_episode, vent_time_start, vent_time_stop, timediff, first_trach_datetime)
+# df_vent_episodes <- df_vent_episodes %>% select(-first_trach_datetime)
 
 # We are now going to look at drug exposure. The start/stop times will be defined by start/stop
 # of ventilation. We later may use pre/post drug exposure.
@@ -666,6 +666,19 @@ df_pressors_wide <- df_meds_dose_intervals %>%
 # Join to the pSOFA dataset
 df_psofa_final <- df_psofa %>%
      left_join(df_pressors_wide)
+
+# Fill labs that might be intermittently taken...
+df_psofa_final <- df_psofa_final %>%
+     group_by(enc_id) %>%
+     arrange(enc_id, recorded_time) %>%
+     fill(creatinine, .direction = 'downup') %>%
+     fill(platelets, .direction = 'downup') %>%
+     fill(tbili, .direction = 'downup') %>%
+     ungroup()
+
+# NEED TO ADD BACK VENT TIMES AT THIS STEP BECAUSE PATIENTS WHO WERE NOT ON
+# PRESSORS WILL NO LONGER HAVE A VENT TIME, WHICH WILL ELIMINATE ANYONE ELSE
+# OTHERWISE.
 
 # Remove any times that were not within the first 24 hours of IMV
 df_psofa_final <- df_psofa_final %>%

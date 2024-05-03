@@ -229,9 +229,9 @@ clean_meds <- function(df_meds,
      # Remove any rows that are not within the user-specified time intervals
      # for a given encounter
      if(exists('time_limits')) {
-          if(!is.na(time_limits)) {
-               tryCatch(
-                    {
+          tryCatch(
+               {
+                    if(!is.na(time_limits)[1]) {
                          intcolname <- sym(names(time_limits)[2])
 
                          # Create a row number for each PICU hospitalization
@@ -248,12 +248,11 @@ clean_meds <- function(df_meds,
                               filter(med_time %within% !!intcolname) %>%
                               select(-!!intcolname) %>%
                               tidyr::unite(col = 'enc_id', sep = '#', enc_id, picu_stay_num)
-                    },
-                    error = function(x){
-                         warning(x)
                     }
-               )
-          }
+               },
+               warning(x)
+
+          )
      }
 
 
