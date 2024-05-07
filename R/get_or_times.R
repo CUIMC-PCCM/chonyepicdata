@@ -147,5 +147,5 @@ get_or_times <- function(adt_filepath,
           ungroup() %>%
           distinct(mrn, enc_id, or_start_date, or_stop_date)
 
-     return(adt_or_simple)
+     return(df_adt_simple)
 }
