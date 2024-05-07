@@ -1,7 +1,7 @@
 Package: chonyepicdata
 Type: Package
 Title: Loads, cleans, and processes CHONY EHR inpatient data from the Epic era (after 2/1/2020)
-Version: 0.1.0
+Version: 0.4
 Author: Andrew Geneslaw
 Maintainer: Andrew Geneslaw <asg2195@cumc.columbia.edu>
 Description: This section TBD at a later date.
