@@ -107,7 +107,7 @@ clean_meds <- function(df_meds,
           conc_num <- conc_denom <- conc_unit <- frequency <- is_infusion <- is_bolus <-
           wt_based <- dosing_weight <- mar_num <- time_diff_next <- time_diff_last <-
           med_stop <- med_change <- med_given <- med_start <- remove_row_simple <-
-          time_diff <- interv_dose <- cumul_dose <- wt_based_string <- mrn <-  NULL
+          time_diff <- interv_dose <- cumul_dose <- wt_based_string <- mrn <- x <- NULL
 
      # *****************************************************************************
      # Additional definitions ------------------------------------------------------
