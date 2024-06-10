@@ -59,7 +59,10 @@ you also have the weight.}
 \value{
 A data frame with raw medication data. Medication name is saved in character format
 in the column 'med_name'. These should be cleaned and processed. If time limits were sent in via
-\code{time_limits}, then this will be sorted by individual PICU stay
+\code{time_limits}, then this will be sorted by individual PICU stay. Returns weight-based doses if
+weights were included in the function call. If not, it will include weight-based versus raw doses
+(in mg, grams, units, etc) based upon the order. These can be converted to weight-based post-hoc.
+The total duration of infusions in hours is returned as cumul_time variables.
 }
 \description{
 Clean and process raw medication data loaded from Epic EHR. The majority of

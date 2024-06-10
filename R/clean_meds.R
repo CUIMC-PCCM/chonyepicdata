@@ -30,7 +30,10 @@
 #'
 #' @return A data frame with raw medication data. Medication name is saved in character format
 #' in the column 'med_name'. These should be cleaned and processed. If time limits were sent in via
-#' \code{time_limits}, then this will be sorted by individual PICU stay
+#' \code{time_limits}, then this will be sorted by individual PICU stay. Returns weight-based doses if
+#' weights were included in the function call. If not, it will include weight-based versus raw doses
+#' (in mg, grams, units, etc) based upon the order. These can be converted to weight-based post-hoc.
+#' The total duration of infusions in hours is returned as cumul_time variables.
 #'
 #' @export
 clean_meds <- function(df_meds,
@@ -611,12 +614,13 @@ clean_meds <- function(df_meds,
 
      # Stack doses and convert to either morphine or midazolam equivalents
      stack_infuse <- meds_infusions %>%
-          select(mrn, enc_id, med, med_time, interv_dose, dose, route, wt_based) %>%
+          select(mrn, enc_id, med, med_time, interv_dose, dose, route, wt_based, time_diff) %>%
           mutate(type = 'infusion')
 
      stack_bolus <- meds_bolus %>%
           select(mrn, enc_id, med, med_time, interv_dose, dose, route, wt_based) %>%
-          mutate(type = 'bolus')
+          mutate(type = 'bolus') %>%
+          mutate(time_diff =)
 
      all_doses <- bind_rows(stack_infuse, stack_bolus) %>%
           # This is used to convert to midazolam and morphine equivalents. Skip
@@ -658,9 +662,10 @@ clean_meds <- function(df_meds,
           # Get a cumulative dose per patient, separated by individual drug
           dose_per_enc_each_drug <- all_doses %>%
                group_by(mrn, enc_id, med) %>%
-               summarize(cumul_dose = sum(interv_dose)) %>%
+               summarize(cumul_dose = sum(interv_dose),
+                         cumul_time = sum(time_diff)) %>%
                pivot_wider(names_from = med,
-                           values_from = cumul_dose)
+                           values_from = c('cumul_dose', 'cumul_time'))
      }
 
      # Separate weight-based and non weight-based medications
@@ -670,10 +675,11 @@ clean_meds <- function(df_meds,
                mutate(wt_based_string = if_else(wt_based, 'weight_based','flat_dose')) %>%
                select(-wt_based) %>%
                group_by(mrn, enc_id, med, wt_based_string) %>%
-               summarize(cumul_dose = sum(interv_dose)) %>%
+               summarize(cumul_dose = sum(interv_dose),
+                         cumul_time = sum(time_diff)) %>%
                pivot_wider(id_cols = 'enc_id',
                            names_from = c('med', 'wt_based_string'),
-                           values_from = cumul_dose,
+                           values_from = c('cumul_dose', 'cumul_time'),
                            names_expand = TRUE)
 
      }
