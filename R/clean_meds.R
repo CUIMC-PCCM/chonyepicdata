@@ -244,13 +244,12 @@ clean_meds <- function(df_meds,
                          # Then, append the number of the encounter to the end of the encounter
                          # ID so that we keep these PICU stays separate.
                          df_meds <- df_meds %>%
-                              inner_join(time_limits, multiple = 'all', by = 'enc_id') %>%
+                              inner_join(time_limits, multiple = 'all', by = 'enc_id', relationship = 'many-to-many') %>%
                               filter(med_time %within% !!intcolname) %>%
                               select(-!!intcolname) %>%
                               tidyr::unite(col = 'enc_id', sep = '#', enc_id, picu_stay_num)
                     }
-               },
-               warning(x)
+               }
 
           )
      }
