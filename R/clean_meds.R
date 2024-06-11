@@ -620,7 +620,7 @@ clean_meds <- function(df_meds,
      stack_bolus <- meds_bolus %>%
           select(mrn, enc_id, med, med_time, interv_dose, dose, route, wt_based) %>%
           mutate(type = 'bolus') %>%
-          mutate(time_diff =)
+          mutate(time_diff = 0)
 
      all_doses <- bind_rows(stack_infuse, stack_bolus) %>%
           # This is used to convert to midazolam and morphine equivalents. Skip
