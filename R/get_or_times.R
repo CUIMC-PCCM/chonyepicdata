@@ -37,7 +37,8 @@ get_or_times <- function(adt_filepath,
      # Required to avoid warnings when building package
      pat_enc_csn_id <- effective_time <- adt_date <- event_id <- level_of_care <-
           department_name <- mrn <- enc_id <- event_type <- last_loc <- last_care_level <-
-          last_row <- or <- last_or <- or_stop <- or_start <- or_event_date <- NULL
+          last_row <- or <- last_or <- or_stop <- or_start <- or_event_date <-
+          or_start_date <- or_stop_date <- NULL
 
      # *****************************************************************************
      # Definitions -----------------------------------------------------------------

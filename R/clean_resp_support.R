@@ -12,13 +12,13 @@
 clean_resp_support <- function(df_resp) {
 
      # Required to avoid warnings when building package
-     cpap_rt <- cpap_level <- mrn <- measurement_name <- resp_meas_name <-
+     cpap_rt <- cpap_level <- mrn <- measure_name <- resp_meas_name <-
           flowsheet_measure_id <- measure_value  <-  NULL
 
      # Categorize useful data and get rid of the rest
      df_resp_wide <- suppressWarnings(
           df_resp %>%
-               select(-measurement_name) %>%
+               select(-display_name) %>%
                mutate(resp_meas_name = case_when(
                     flowsheet_measure_id == 3040102552 ~	'amp_hfov',
                     flowsheet_measure_id == 30446600302 ~	'bcpap_status',
