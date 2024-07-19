@@ -1,4 +1,4 @@
-#' clean_resp_support
+#' clean_resp_support_old
 #'
 #' Take respiratory support file loaded by \link{load_resp_support}. Clean it a little,
 #' keep standard valuable rows, and put it into wide format so that each timestamp has
@@ -12,7 +12,7 @@
 #' @return A data frame in wide format with concurrently-recorded respiratory data
 #' @export
 #'
-clean_resp_support <- function(df_resp) {
+clean_resp_support_old <- function(df_resp) {
 
      # Required to avoid warnings when building package
      cpap_rt <- cpap_level <- mrn <- measurement_name <- resp_meas_name <-
