@@ -18,7 +18,7 @@
 #'
 #' @seealso [clean_meds()]
 #' @export
-#'
+
 load_meds_old <- function(med_filepath,
                       med_coltypes = list(
                            col_number(),     # ORDER_MED_ID
