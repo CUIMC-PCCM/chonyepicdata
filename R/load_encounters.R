@@ -29,7 +29,7 @@ load_encounters <- function(encounter_filepath,
                                  col_datetime(),       # BIRTH_DATE
                                  col_character(),      # SEX
                                  col_skip(),           # AGE_AT_ADMIT
-                                 col_skip(),           # ETHNICITY
+                                 col_character(),      # ETHNICITY
                                  col_skip(),           # ZIP_CODE
                                  col_datetime(),       # ADMISSION_DATE
                                  col_datetime()        # DISCHARGE_DATE

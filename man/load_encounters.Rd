@@ -7,7 +7,8 @@
 load_encounters(
   encounter_filepath,
   coltypes_enc = list(col_character(), col_character(), col_skip(), col_datetime(),
-    col_character(), col_skip(), col_skip(), col_skip(), col_datetime(), col_datetime()),
+    col_character(), col_skip(), col_character(), col_skip(), col_datetime(),
+    col_datetime()),
   max_load = Inf
 )
 }
