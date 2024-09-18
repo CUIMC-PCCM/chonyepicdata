@@ -35,22 +35,6 @@ load_meds <- function(med_filepath,
                            TAKEN_TIME = col_datetime(),
                            COMMENTS = col_skip(),
                            RESULT = col_character()
-
-                           # col_number(),     # ORDER_MED_ID
-                           # col_skip(),       # LINE
-                           # col_character(),  # MRN
-                           # col_character(),  # PAT_ENC_CSN_ID
-                           # col_datetime(),   # ORDERING_DATE
-                           # col_character(),  # MED_NAME
-                           # col_double(),     # DOSE
-                           # col_character(),  # DOSE_UNIT
-                           # col_character(),  # CONCENTRATION
-                           # col_double(),     # INFUSION_RATE
-                           # col_character(),  # FREQUENCY
-                           # col_character(),  # ROUTE
-                           # col_datetime(),   # TAKEN_TIME
-                           # col_skip(),       # COMMENTS
-                           # col_character()   # RESULT
                       ),
                       max_load = Inf)
 
@@ -68,6 +52,7 @@ load_meds <- function(med_filepath,
                clean_names() %>%
                mutate(across(where(is.character), str_to_lower)) %>%
                rename(enc_id = pat_enc_csn_id,
+                      ordering_date = order_time,
                       order_med_id = order_id,
                       med_name = medication_name) %>%
                distinct(enc_id, med_name, dose, taken_time, .keep_all = TRUE)
