@@ -1,4 +1,4 @@
-#' load_rass
+#' load_rass_old
 #'
 #' Load Richmond Agitation Sedation Scale data from Epic flowsheets.
 #' The datafile contains other types of flowsheet data, such as delirium
@@ -34,13 +34,20 @@
 #' @export
 #'
 
-# New format
 # MRN|PAT_ENC_CSN_ID|FSD_ID|LINE|DISPLAY_NAME|FLOWSHEET_MEASURE_ID|MEASURE_VALUE|UNITS|RECORDED_TIME
 
-# Old format
-# PAT_ENC_CSN_ID|MRN|FLOWSHEET_GROUP|COMMON_NAME|FLOWSHEET_NAME|CUST_LIST_MAP_VALUE|MEAS_VALUE|UNITS|RECORDED_TIME
-
-load_rass <- function(rass_filepath,
+load_rass_old <- function(rass_filepath,
+                      rass_coltypes = list(
+                           col_character(),   # PAT_ENC_CSN_ID
+                           col_character(),   # MRN
+                           col_skip(),        # FLOWSHEET_GROUP
+                           col_character(),   # COMMON_NAME
+                           col_skip(),        # FLOWSHEET_NAME
+                           col_number(),      # CUST_LIST_MAP_VALUE
+                           col_skip(),        # MEAS_VALUE
+                           col_skip(),        # UNITS
+                           col_character()    # RECORDED_TIME
+                      ),
                       max_load = Inf)
 
 {
@@ -49,17 +56,17 @@ load_rass <- function(rass_filepath,
 
      df_rass <- read_delim(rass_filepath,
                            delim = '|',
-                           col_types = cols(.default = col_character()),
+                           col_types = rass_coltypes,
                            n_max = max_load) %>%
           clean_names() %>%
-          dplyr::filter(str_detect(display_name, 'RASS')) %>%
+          dplyr::filter(str_detect(common_name, '^RASS')) %>%
           mutate(across(where(is.character), str_to_lower)) %>%
           mutate(recorded_time = lubridate::ymd_hms(recorded_time)) %>%
           rename(enc_id = pat_enc_csn_id,
                  rass_time = recorded_time,
-                 rass = measure_value) %>%
-          select(mrn, enc_id, rass_time, rass) %>%
-          mutate(rass = as.numeric(rass))
+                 rass = cust_list_map_value) %>%
+          select(-common_name) %>%
+          relocate(mrn)
 
      return(df_rass)
 
