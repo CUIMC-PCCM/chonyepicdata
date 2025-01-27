@@ -80,7 +80,8 @@ get_rass_intervals <- function(id, rass, rass_time, max_inter_ep_duration = 4) {
 
      # Create the data frame to export. Remove any row with RASS equal to NA
      df_rass <- dplyr::tibble(id = id, rass = rass, rass_time = rass_time) %>%
-          filter(!is.na(rass))
+          filter(!is.na(rass)) %>%
+          arrange(id, rass_time)
 
      # Find times where the RASS changes and number the episodes
      df_rass <- df_rass %>%

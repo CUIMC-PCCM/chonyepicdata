@@ -99,7 +99,26 @@ get_capd_intervals <- function(id, capd, capd_time, coma_times=NULL, max_inter_e
      # Also remove negative numbers
      df_capd <- tibble(id = id, capd = capd, capd_time = capd_time) %>%
           filter(!is.na(capd)) %>%
-          filter(capd >= 0)
+          filter(capd >= 0) %>%
+          arrange(id, capd_time)
+
+     # If the coma_times data frame was sent, we should update to make sure we note
+     # when the patient was in a coma, and therefore the CAPD is undefined
+     if(!is.null(coma_times)) {
+
+          df_capd2 <- df_capd %>%
+               left_join(df_capd, by = 'id') %>%
+               filter(!(capd_time %within% interval(coma_time_start, coma_time_stop))) %>%
+               select(id, capd, capd_time)
+
+          # Update the time duration measurements when the patient was comatose
+          df_capd2 <- bind_rows(df_capd, coma_times) %>%
+               group_by(id) %>%
+               arrange(id, capd_time_start) %>%
+               mutate(capd_episode = row_number()) %>%
+               ungroup() %>%
+               mutate(capd_interval_duration = tidyr::replace_na(as.duration(interval(capd_time_start, capd_time_stop))))
+     }
 
      # Find times where the CAPD changes and number the episodes
      df_capd <- df_capd %>%
@@ -131,22 +150,7 @@ get_capd_intervals <- function(id, capd, capd_time, coma_times=NULL, max_inter_e
                  capd_interval_duration = as.duration(interval(capd_time_start, capd_time_stop))) %>%
           select(-timetonext)
 
-     # If the coma_times data frame was sent, we should update to make sure we note
-     # when the patient was in a coma, and therefore the CAPD is undefined
-     if(!is.null(coma_times)) {
-          coma_times <- coma_times %>%
-               mutate(capd = NA) %>%
-               rename(capd_time_start = coma_time_start,
-                      capd_time_stop = coma_time_stop)
 
-          # Update the time duration measurements when the patient was comatose
-          df_capd2 <- bind_rows(df_capd, coma_times) %>%
-               group_by(id) %>%
-               arrange(id, capd_time_start) %>%
-               mutate(capd_episode = row_number()) %>%
-               ungroup() %>%
-               mutate(capd_interval_duration = tidyr::replace_na(as.duration(interval(capd_time_start, capd_time_stop))))
-     }
 
      # Create a flag for when patient is delirious
      df_capd <- df_capd %>%
