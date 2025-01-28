@@ -1,6 +1,8 @@
 #' get_rass_intervals
 #'
 #' Takes data fram from \link{load_rass} and creates intervals for each patient encounter.
+#' Each interval contains the Richmond Agitation Sedation Scale (RASS) score,
+#' as well as the duration of time spent at that interval.
 #' An interval will last at most max_inter_ep_duration if nothing else is charted.
 #'
 
@@ -12,7 +14,7 @@
 #' @param rass_time A vector of datetime or POSIXct entries corresponding to each RASS value
 #' @param max_inter_ep_duration A number, the maximum number of hours that a particular RASS will be
 #' extended in the event of a null recording. RASS may be sparsely recorded. For any recorded RASS,
-#' the current RASS will be carried forward for \code{max_ep_duration} hours. After this amount
+#' the current RASS will be carried forward for \code{max_inter_ep_duration} hours. After this amount
 #' of time, the interval will be ended. Set this variable to 0 and no intervals will be created. Set
 #' it to NA and the interval will be extended forward indefinitely until a new RASS is recorded.
 #'
@@ -43,7 +45,7 @@ get_rass_intervals <- function(id, rass, rass_time, max_inter_ep_duration = 4) {
           return(NULL)
      })
 
-     # Make sure variable rass is an intrger
+     # Make sure variable rass is an integer
      tryCatch({
           if(!is.integer(rass)) {
                rass <- as.integer(rass)
@@ -76,10 +78,10 @@ get_rass_intervals <- function(id, rass, rass_time, max_inter_ep_duration = 4) {
      # Create the data frame -----------------------------------------
      # ***************************************************************
 
-     # Create the data frame to export. Fill in an NA for every hour
-     # where no data exists
+     # Create the data frame to export. Remove any row with RASS equal to NA
      df_rass <- dplyr::tibble(id = id, rass = rass, rass_time = rass_time) %>%
-          filter(!is.na(rass))
+          filter(!is.na(rass)) %>%
+          arrange(id, rass_time)
 
      # Find times where the RASS changes and number the episodes
      df_rass <- df_rass %>%
@@ -92,8 +94,9 @@ get_rass_intervals <- function(id, rass, rass_time, max_inter_ep_duration = 4) {
      # Also find the time until the "next" interval.
      df_rass <- df_rass %>%
           group_by(id, rass_episode) %>%
-          dplyr::reframe(rass_time_start = min(rass_time),
-                  rass_time_stop = max(rass_time)) %>%
+          dplyr::reframe(rass = min(rass),
+                         rass_time_start = min(rass_time),
+                         rass_time_stop = max(rass_time)) %>%
           group_by(id) %>%
           mutate(timetonext = (lead(rass_time_start, default = max(rass_time_stop)) - rass_time_stop)/lubridate::dhours(1)) %>%
           ungroup()

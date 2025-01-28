@@ -18,7 +18,7 @@ or episode of invasive mechanical ventilation.}
 
 \item{max_inter_ep_duration}{A number, the maximum number of hours that a particular RASS will be
 extended in the event of a null recording. RASS may be sparsely recorded. For any recorded RASS,
-the current RASS will be carried forward for \code{max_ep_duration} hours. After this amount
+the current RASS will be carried forward for \code{max_inter_ep_duration} hours. After this amount
 of time, the interval will be ended. Set this variable to 0 and no intervals will be created. Set
 it to NA and the interval will be extended forward indefinitely until a new RASS is recorded.}
 }
@@ -27,5 +27,7 @@ A data frame of IDs, RASS, and start/stop times of the intervals, and a duration
 }
 \description{
 Takes data fram from \link{load_rass} and creates intervals for each patient encounter.
+Each interval contains the Richmond Agitation Sedation Scale (RASS) score,
+as well as the duration of time spent at that interval.
 An interval will last at most max_inter_ep_duration if nothing else is charted.
 }
