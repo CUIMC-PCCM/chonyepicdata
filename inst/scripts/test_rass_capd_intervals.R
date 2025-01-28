@@ -44,13 +44,18 @@ df_capd <- load_capd(paste0(data_path, fname_sedation_delirium)) %>%
      arrange(mrn, enc_id, capd_time)
 
 # Setting max_inter_ep_duration to NA means we use a last one carried forward (LOCF) approach
-df_rass_interval <- get_rass_intervals(df_rass$enc_id, df_rass$rass, df_rass$rass_time, max_inter_ep_duration = NA)
+df_rass_intervals <- get_rass_intervals(df_rass$enc_id, df_rass$rass, df_rass$rass_time, max_inter_ep_duration = NA)
 
-df_coma_times <- df_rass_interval %>% filter(rass < -3) %>%
-     select(id, coma_time_start = rass_time_start, coma_time_stop = rass_time_stop)
+# Can't measure CAPD during coma (RASS <= -4)
+df_coma_times <- df_rass_intervals %>% filter(rass < -3) %>%
+     select(id, coma_time_start = rass_time_start, coma_time_stop = rass_time_stop) %>%
+     ungroup()
 
+# Get CAPD intervals. 12 hours = LOCF approach that is time truncate.
 df_capd_intervals <- get_capd_intervals(id = df_capd$enc_id,
                                         capd = df_capd$capd,
                                         capd_time = df_capd$capd_time,
                                         coma_times = df_coma_times,
-                                        max_inter_ep_duration = NA)
+                                        max_inter_ep_duration = 12)
+
+df_delirium <- df_capd_intervals
