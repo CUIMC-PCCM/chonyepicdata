@@ -40,25 +40,25 @@
 #'   indefinitely until a new CAPD is recorded.
 #'
 #' @return A data frame with:
-#' \itemize {
+#' \itemize{
 #'   \item \code{id}: The ID of the patient.
 #'   \item \code{capd_episode}: The number of each CAPD interval (1, 2, 3, ..., k) for k intervals per ID
 #'   \item \code{capd}: The CAPD
 #'   \item \code{capd_time_start}: The start datetime of each interval
 #'   \item \code{capd_time_stop}: The end datetime of each interval
-#'   \item \code{capd_duration}: A [lubridate::duration()] object representing the duration of this interval
+#'   \item \code{capd_duration}: A \code{\link[lubridate]{duration}} object representing the duration of this interval
 #'   \item \code{delirious}: A logical representing whether the patient is or isn't delirious at this time
 #'   }
 #' @export
-#'
-#' @md
+
 get_capd_intervals <- function(id, capd, capd_time, coma_times=NULL, max_inter_ep_duration = 12) {
 
      # ***************************************************************
      # Initialize variables ------------------------------------------
      # ***************************************************************
      capd_change <- capd_episode <- capd_time_start <- capd_time_stop <-
-          timetonext <- NULL
+          timetonext <- x <- y <- df_coma_times <- df_rass <-
+               rass_time_start <- rass_time_stop <- NULL
 
 
      # ***************************************************************
@@ -119,9 +119,9 @@ get_capd_intervals <- function(id, capd, capd_time, coma_times=NULL, max_inter_e
 
      # Remove any CAPD measures that were taken during periods of coma
      if(!is.null(coma_times)) {
-     anti_capd_coma_join <- join_by(id, between(x$capd_time, y$coma_time_start, y$coma_time_stop, bounds = '()'))
-     df_capd <- anti_join(df_capd, df_coma_times, by = anti_capd_coma_join) %>%
-          distinct()
+          anti_capd_coma_join <- join_by(id, between(capd_time, coma_time_start, coma_time_stop, bounds = '()'))
+          df_capd <- anti_join(df_capd, coma_times, by = anti_capd_coma_join) %>%
+               distinct()
      }
 
      # Find times where the CAPD changes and number the episodes

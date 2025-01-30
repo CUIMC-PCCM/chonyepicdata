@@ -7,10 +7,6 @@
 #'
 #' @md
 #' @param rass_filepath Path to the RASS data
-#' @param rass_coltypes A list of cols() specifications.
-#'   Cols specifications are things like col_integer(), col_character(), and can be found
-#'   within the \code{\link[readr]{cols}} documentation from the \code{readr} package.
-#'   If this isn't working well you can send in col_guess().
 #' @param max_load The maximum number of rows to load. The default is \code{Inf}
 #'
 #' @return A data frame with:
@@ -45,7 +41,8 @@ load_rass <- function(rass_filepath,
 
 {
      # Required to avoid warnings when building package
-     common_name <- recorded_time <- pat_enc_csn_id <- cust_list_map_value <- mrn <- NULL
+     common_name <- recorded_time <- pat_enc_csn_id <- cust_list_map_value <- mrn <-
+          display_name <- measure_value <- enc_id <- rass_time <- rass <- NULL
 
      df_rass <- read_delim(rass_filepath,
                            delim = '|',

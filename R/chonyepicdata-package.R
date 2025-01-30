@@ -4,7 +4,9 @@
 ## usethis namespace: start
 #' @import rlang
 #' @importFrom dplyr across
+#' @importFrom dplyr anti_join
 #' @importFrom dplyr arrange
+#' @importFrom dplyr between
 #' @importFrom dplyr bind_rows
 #' @importFrom dplyr case_when
 #' @importFrom dplyr distinct
@@ -27,6 +29,7 @@
 #' @importFrom dplyr select
 #' @importFrom dplyr starts_with
 #' @importFrom dplyr summarize
+#' @importFrom dplyr tibble
 #' @importFrom dplyr ungroup
 #' @importFrom dplyr where
 #' @importFrom glue glue

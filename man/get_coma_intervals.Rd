@@ -7,7 +7,7 @@
 get_coma_intervals(df_rass_intervals)
 }
 \arguments{
-\item{df_rass_intervals}{A data frame returned by \link{get_rass_intervals}.}
+\item{df_rass_intervals}{A data frame returned by \code{\link{get_rass_intervals}}.}
 
 \item{id}{A character vector of IDs for each unique patient or encounter. Generally taken from
 the variable PAT_ENC_CSN_ID, but can also create custom IDs. An example would be to use
@@ -16,7 +16,7 @@ or episode of invasive mechanical ventilation.}
 }
 \value{
 A data frame with:
-\itemize {
+\itemize{
 \item \code{id}: The ID of the patient.
 \item \code{coma_time_start}: A POSIXct object when a coma episode started.
 \item \code{coma_time_stop}: A POSIXct object when a coma episode ended.

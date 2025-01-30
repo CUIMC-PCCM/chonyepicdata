@@ -42,7 +42,7 @@ load_meds <- function(med_filepath,
 
      # Required to avoid warnings when building package
      pat_enc_csn_id <- enc_id <- med_name <- dose <- taken_time <-
-          order_id <- medication_name <- NULL
+          order_id <- order_time <- medication_name <- NULL
 
      suppressWarnings({
           df_meds <- read_delim(med_filepath,

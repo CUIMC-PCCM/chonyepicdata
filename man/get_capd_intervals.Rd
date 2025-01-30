@@ -42,13 +42,13 @@ indefinitely until a new CAPD is recorded.}
 }
 \value{
 A data frame with:
-\itemize {
+\itemize{
 \item \code{id}: The ID of the patient.
 \item \code{capd_episode}: The number of each CAPD interval (1, 2, 3, ..., k) for k intervals per ID
 \item \code{capd}: The CAPD
 \item \code{capd_time_start}: The start datetime of each interval
 \item \code{capd_time_stop}: The end datetime of each interval
-\item \code{capd_duration}: A \code{\link[lubridate:duration]{lubridate::duration()}} object representing the duration of this interval
+\item \code{capd_duration}: A \code{\link[lubridate]{duration}} object representing the duration of this interval
 \item \code{delirious}: A logical representing whether the patient is or isn't delirious at this time
 }
 }

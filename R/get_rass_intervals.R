@@ -19,8 +19,10 @@
 #' it to NA and the interval will be extended forward indefinitely until a new RASS is recorded.
 #'
 #' @return A data frame of IDs, RASS, and start/stop times of the intervals, and a duration for each.
-#' @export
 #'
+#' @export
+
+
 get_rass_intervals <- function(id, rass, rass_time, max_inter_ep_duration = 4) {
 
      # ***************************************************************

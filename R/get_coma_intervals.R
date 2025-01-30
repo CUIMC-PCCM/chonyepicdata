@@ -7,24 +7,24 @@
 #' the variable PAT_ENC_CSN_ID, but can also create custom IDs. An example would be to use
 #' PAT_ENC_CSN_ID but also append an identifier (01, 02, 03, etc.) for each PICU hospitalization
 #' or episode of invasive mechanical ventilation.
-#' @param df_rass_intervals A data frame returned by \link{get_rass_intervals}.
+#' @param df_rass_intervals A data frame returned by \code{\link{get_rass_intervals}}.
 #'
 #' @return A data frame with:
-#' \itemize {
+#' \itemize{
 #'   \item \code{id}: The ID of the patient.
 #'   \item \code{coma_time_start}: A POSIXct object when a coma episode started.
 #'   \item \code{coma_time_stop}: A POSIXct object when a coma episode ended.
 #'   }
+#'
 #' @export
 #'
-#' @md
 get_coma_intervals <- function(df_rass_intervals) {
 
      # ***************************************************************
      # Initialize variables ------------------------------------------
      # ***************************************************************
-     # capd_change <- capd_episode <- capd_time_start <- capd_time_stop <-
-          # timetonext <- NULL
+     capd_change <- capd_episode <- capd_time_start <- capd_time_stop <-
+          timetonext <- NULL
 
      comavarnames <- c('id', 'rass_episode', 'rass', 'rass_time_start', 'rass_time_stop', 'rass_interval_duration')
 
@@ -49,7 +49,8 @@ get_coma_intervals <- function(df_rass_intervals) {
 
      df_coma_intervals <- df_rass_intervals %>%
           filter(rass <= -4) %>%
-          select(id, coma_time_start = rass_time_start, coma_time_stop = rass_time_stop)
+          select(id, coma_time_start = rass_time_start, coma_time_stop = rass_time_stop) %>%
+          arrange(id, coma_time_start)
 
      return(df_coma_intervals)
 }
