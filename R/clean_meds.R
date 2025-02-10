@@ -605,7 +605,12 @@ clean_meds <- function(df_meds,
                  interv_dose = if_else(med == 'ketamine' & str_detect(units, 'min'), interv_dose * 60, interv_dose),
                  interv_dose = if_else(med == 'propofol' & str_detect(units, 'mcg'), interv_dose / 1000, interv_dose),
                  interv_dose = if_else(med == 'propofol' & str_detect(units, 'min'), interv_dose * 60, interv_dose),
-                 )
+                 ) %>%
+          mutate(units = if_else(med == 'ketamine' & str_detect(units, 'mcg'), str_replace_all(units, 'mcg', 'mg'), units),
+                 units = if_else(med == 'ketamine' & str_detect(units, 'min'), str_replace_all(units, 'min', 'hr'), units),
+                 units = if_else(med == 'propofol' & str_detect(units, 'mcg'), str_replace_all(units, 'mcg', 'mg'), units),
+                 units = if_else(med == 'propofol' & str_detect(units, 'min'), str_replace_all(units, 'min', 'hr'), units)
+          )
 
 
      ## *****************************************************************************
