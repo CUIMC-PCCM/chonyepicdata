@@ -601,10 +601,10 @@ clean_meds <- function(df_meds,
      # mg, or sometimes per minute and sometimes per hour. Convert any
      # to mg and per hour.
      meds_infusions <- meds_infusions %>%
-          mutate(interv_dose = if_else(med == 'ketamine' & str_detect(dose_unit, 'mcg'), interv_dose / 1000, interv_dose),
-                 interv_dose = if_else(med == 'ketamine' & str_detect(dose_unit, 'min'), interv_dose * 60, interv_dose),
-                 interv_dose = if_else(med == 'propofol' & str_detect(dose_unit, 'mcg'), interv_dose / 1000, interv_dose),
-                 interv_dose = if_else(med == 'propofol' & str_detect(dose_unit, 'min'), interv_dose * 60, interv_dose),
+          mutate(interv_dose = if_else(med == 'ketamine' & str_detect(units, 'mcg'), interv_dose / 1000, interv_dose),
+                 interv_dose = if_else(med == 'ketamine' & str_detect(units, 'min'), interv_dose * 60, interv_dose),
+                 interv_dose = if_else(med == 'propofol' & str_detect(units, 'mcg'), interv_dose / 1000, interv_dose),
+                 interv_dose = if_else(med == 'propofol' & str_detect(units, 'min'), interv_dose * 60, interv_dose),
                  )
 
 
