@@ -597,20 +597,17 @@ clean_meds <- function(df_meds,
           ungroup()
 
 
-     # Ketamine and propofol are sometimes dosed in micrograms and sometimes in
-     # mg, or sometimes per minute and sometimes per hour. Convert any
-     # to mg and per hour.
+     # Ketamine, cisatracurium, and propofol are sometimes dosed in micrograms
+     # and sometimes in mg, or sometimes per minute and sometimes per hour.
+     # Convert any to mg and per hour.
      meds_infusions <- meds_infusions %>%
-          mutate(interv_dose = if_else(med == 'ketamine' & str_detect(units, 'mcg'), interv_dose / 1000, interv_dose),
-                 interv_dose = if_else(med == 'ketamine' & str_detect(units, 'min'), interv_dose * 60, interv_dose),
-                 interv_dose = if_else(med == 'propofol' & str_detect(units, 'mcg'), interv_dose / 1000, interv_dose),
-                 interv_dose = if_else(med == 'propofol' & str_detect(units, 'min'), interv_dose * 60, interv_dose),
+          mutate(interv_dose = if_else(med %in% c('ketamine', 'propofol', 'cisatracurium') & str_detect(units, 'mcg'), interv_dose / 1000, interv_dose),
+                 interv_dose = if_else(med %in% c('ketamine', 'propofol', 'cisatracurium') & str_detect(units, 'min'), interv_dose * 60, interv_dose)
                  ) %>%
-          mutate(units = if_else(med == 'ketamine' & str_detect(units, 'mcg'), str_replace_all(units, 'mcg', 'mg'), units),
-                 units = if_else(med == 'ketamine' & str_detect(units, 'min'), str_replace_all(units, 'min', 'hr'), units),
-                 units = if_else(med == 'propofol' & str_detect(units, 'mcg'), str_replace_all(units, 'mcg', 'mg'), units),
-                 units = if_else(med == 'propofol' & str_detect(units, 'min'), str_replace_all(units, 'min', 'hr'), units)
+          mutate(units = if_else(med %in% c('ketamine', 'propofol', 'cisatracurium') & str_detect(units, 'mcg'), str_replace_all(units, 'mcg', 'mg'), units),
+                 units = if_else(med %in% c('ketamine', 'propofol', 'cisatracurium') & str_detect(units, 'min'), str_replace_all(units, 'min', 'hr'), units)
           )
+
 
 
      ## *****************************************************************************
@@ -624,6 +621,15 @@ clean_meds <- function(df_meds,
      meds_bolus <- meds_bolus %>%
           filter(mar_result %in% mar_med_given) %>%
           mutate(interv_dose = dose)
+
+     # Ketamine, cisatracurium, and propofol are sometimes dosed in micrograms
+     # and sometimes in mg, or sometimes per minute and sometimes per hour.
+     # Convert any to mg and per hour.
+     meds_bolus <- meds_bolus %>%
+          mutate(interv_dose = if_else(med %in% c('ketamine', 'propofol', 'cisatracurium') & str_detect(units, 'mcg'), interv_dose / 1000, interv_dose)
+          ) %>%
+          mutate(units = if_else(med %in% c('ketamine', 'propofol', 'cisatracurium') & str_detect(units, 'mcg'), str_replace_all(units, 'mcg', 'mg'), units)
+          )
 
      ## *****************************************************************************
      ## Combine infusions and bolus -------------------------------------------------
@@ -661,9 +667,13 @@ clean_meds <- function(df_meds,
                     med == 'dexmedetomidine' ~ interv_dose,
                     med == 'ketamine' ~ interv_dose,
                     med == 'pentobarbital' ~ interv_dose,
-                    med == 'rocuronium' ~ interv_dose,
-                    med == 'vecuronium' ~ interv_dose * 10,
-                    med == 'cisatracurium' ~ interv_dose * 20/3,
+                    med == 'rocuronium' ~ interv_dose / 10,
+                    med == 'vecuronium' ~ interv_dose,
+                    med == 'cisatracurium' ~ interv_dose, # Dosing for cisatracurium is tricky. Infusions are typically 1-4mcg/kg/min.
+                                                          # But bolus is 0.1-0.15mg/kg. Unlike many other medications the hourly rate
+                                                          # started a bit less than the starting bolus dose (0.1mg/kg vs 0.06mg/kg/hr).
+                                                          # For simplicity's sake we will assume 0.1mg/kg is he baseline dose,
+                                                          # the same as vecuronium, so no conversion will be used.
                     TRUE ~ interv_dose
                )
           ) %>%

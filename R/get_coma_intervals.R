@@ -24,7 +24,8 @@ get_coma_intervals <- function(df_rass_intervals) {
      # Initialize variables ------------------------------------------
      # ***************************************************************
      capd_change <- capd_episode <- capd_time_start <- capd_time_stop <-
-          timetonext <- NULL
+          timetonext <- id <- rass <- rass_time_start <- rass_time_stop <-
+          coma_time_start <- coma_time_stop <- NULL
 
      comavarnames <- c('id', 'rass_episode', 'rass', 'rass_time_start', 'rass_time_stop', 'rass_interval_duration')
 

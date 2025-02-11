@@ -58,7 +58,8 @@ get_capd_intervals <- function(id, capd, capd_time, coma_times=NULL, max_inter_e
      # ***************************************************************
      capd_change <- capd_episode <- capd_time_start <- capd_time_stop <-
           timetonext <- x <- y <- df_coma_times <- df_rass <-
-               rass_time_start <- rass_time_stop <- NULL
+               rass_time_start <- rass_time_stop <- coma_time_start <-
+          coma_time_stop <- NULL
 
 
      # ***************************************************************
@@ -119,7 +120,7 @@ get_capd_intervals <- function(id, capd, capd_time, coma_times=NULL, max_inter_e
 
      # Remove any CAPD measures that were taken during periods of coma
      if(!is.null(coma_times)) {
-          anti_capd_coma_join <- join_by(id, between(capd_time, coma_time_start, coma_time_stop, bounds = '()'))
+          anti_capd_coma_join <- join_by(id, dplyr::between(capd_time, coma_time_start, coma_time_stop, bounds = "()"))
           df_capd <- anti_join(df_capd, coma_times, by = anti_capd_coma_join) %>%
                distinct()
      }
@@ -135,11 +136,11 @@ get_capd_intervals <- function(id, capd, capd_time, coma_times=NULL, max_inter_e
      # Also find the time until the "next" interval.
      df_capd <- df_capd %>%
           group_by(id, capd_episode) %>%
-          reframe(capd = max(capd),
+          dplyr::reframe(capd = max(capd),
                   capd_time_start = min(capd_time),
                   capd_time_stop = max(capd_time)) %>%
           group_by(id) %>%
-          mutate(timetonext = (lead(capd_time_start, default = max(capd_time_stop)) - capd_time_stop)/dhours(1)) %>%
+          mutate(timetonext = (lead(capd_time_start, default = max(capd_time_stop)) - capd_time_stop)/lubridate::dhours(1)) %>%
           ungroup()
 
      # Update the end time of each interval to be end of this interval plus max_inter_ep_duration, or
