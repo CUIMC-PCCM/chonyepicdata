@@ -13,10 +13,15 @@
 #'       DISPLAY_NAME -> component_name
 #'       MEASURE_VALUE -> component_value
 #'       RECORDED_TIME -> capd_time
+#' The names on the left hand side of the list argument must be kept consistent.
+#' The names on the right-hand side are the names that are actually present in the .txt file
+#' which will be mapped to these variables.
 #' @param capd_coltypes A list of cols() specifications specifying how columns should be read.
 #'   Cols specifications are things like col_integer(), col_character(), and can be found
 #'   within the \code{\link[readr]{cols}} documentation from the \code{readr} package.
-#'   If this isn't working well you can send in col_guess().
+#'   By default it is recommended to just send in 'ccccccc' where the length of the string of
+#'   characters is the number of columns in the data.
+#'   If this isn't working well you can send in col_guess() for each one.
 #' @param max_load The maximum number of rows to load. The default is \code{Inf}
 #'
 #' @return #' @return A data frame with:
@@ -56,10 +61,6 @@ load_capd <- function(capd_filepath,
                            n_max = max_load) %>%
           clean_names()
 
-     # Print column names to debug
-     # print("Columns in loaded data:")
-     # print(colnames(df_capd))
-
      # Rename columns based on col_mapping
      df_capd <- df_capd %>%
           rename(
@@ -70,33 +71,11 @@ load_capd <- function(capd_filepath,
                capd_time = !!col_mapping$capd_time
           )
 
-     # Print column names after renaming
-     # print("Columns after renaming:")
-     # print(colnames(df_capd))
-
      # Check if all columns in col_mapping exist in the data
      missing_cols <- setdiff(names(col_mapping), colnames(df_capd))
      if(length(missing_cols) > 0) {
           stop(paste("The following columns were not found in the data: ", paste(missing_cols, collapse = ",")))
      }
-
-
-
-     # # Map the columns based on user input (col_mapping)
-     # df_capd <- df_capd %>%
-     #      rename(
-     #           enc_id = !!sym(col_mapping$enc_id),
-     #           mrn = !!sym(col_mapping$mrn),
-     #                component_name = !!sym(col_mapping$component_name),
-     #                component_value = !!sym(col_mapping$component_value),
-     #                capd_time = !!sym(col_mapping$capd_time)
-     #           )
-
-     # # Remove unneeded columns
-     # df_capd <- df_capd %>%
-     #      select(all_of(names(col_mapping)))
-
-     # print(head(df_capd))
 
      # Perform transformation into capd (summing across components)
      df_capd <- df_capd %>%
