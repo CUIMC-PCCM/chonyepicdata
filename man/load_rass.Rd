@@ -4,10 +4,37 @@
 \alias{load_rass}
 \title{load_rass}
 \usage{
-load_rass(rass_filepath, max_load = Inf)
+load_rass(
+  rass_filepath,
+  col_mapping = list(enc_id = "pat_enc_csn_id", mrn = "mrn", rass_id_col =
+    "display_name", rass = "measure_value_raw", rass_time = "recorded_time"),
+  rass_coltypes = NULL,
+  max_load = Inf
+)
 }
 \arguments{
 \item{rass_filepath}{Path to the RASS data}
+
+\item{col_mapping}{List that defines mapping of columns to key variables that will be output. You can dynamically
+specify these mappings when calling the function.
+The default is:
+\itemize{
+\item enc_id = "pat_enc_csn_id",
+\item mrn = "mrn",
+\item rass_id_col = "display_name",
+\item rass = "measure_value_raw",
+\item rass_time = "recorded_time"
+}
+The names on the left hand side of the list argument must be kept consistent.
+The names on the right-hand side are the names that are actually present in the .txt file
+which will be mapped to these variables.}
+
+\item{rass_coltypes}{A list of cols() specifications specifying how columns should be read.
+Cols specifications are things like col_integer(), col_character(), and can be found
+within the \code{\link[readr]{cols}} documentation from the \code{readr} package.
+By default it is recommended to just send in 'ccccccc' where the length of the string of
+characters is the number of columns in the data.
+If this isn't working well you can send in col_guess() for each one.}
 
 \item{max_load}{The maximum number of rows to load. The default is \code{Inf}}
 }

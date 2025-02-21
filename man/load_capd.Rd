@@ -6,18 +6,33 @@
 \usage{
 load_capd(
   capd_filepath,
-  capd_colpaths = list(col_character(), col_character(), col_skip(), col_character(),
-    col_skip(), col_number(), col_skip(), col_skip(), col_character()),
+  col_mapping = list(enc_id = "pat_enc_csn_id", mrn = "mrn", component_name =
+    "display_name", component_value = "measure_value", capd_time = "recorded_time"),
+  capd_coltypes = NULL,
   max_load = Inf
 )
 }
 \arguments{
 \item{capd_filepath}{Path to the CAP-D data}
 
-\item{capd_colpaths}{A list of cols() specifications.
+\item{col_mapping}{Defines mapping of columns to key variables that will be output. You can dynamically
+specify these mappings when calling the function.
+The default is:
+PAT_ENC_CSN_ID -> enc_id
+MRN -> mrn
+DISPLAY_NAME -> component_name
+MEASURE_VALUE -> component_value
+RECORDED_TIME -> capd_time
+The names on the left hand side of the list argument must be kept consistent.
+The names on the right-hand side are the names that are actually present in the .txt file
+which will be mapped to these variables.}
+
+\item{capd_coltypes}{A list of cols() specifications specifying how columns should be read.
 Cols specifications are things like col_integer(), col_character(), and can be found
 within the \code{\link[readr]{cols}} documentation from the \code{readr} package.
-If this isn't working well you can send in col_guess().}
+By default it is recommended to just send in 'ccccccc' where the length of the string of
+characters is the number of columns in the data.
+If this isn't working well you can send in col_guess() for each one.}
 
 \item{max_load}{The maximum number of rows to load. The default is \code{Inf}}
 }

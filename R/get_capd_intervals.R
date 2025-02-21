@@ -120,7 +120,7 @@ get_capd_intervals <- function(id, capd, capd_time, coma_times=NULL, max_inter_e
 
      # Remove any CAPD measures that were taken during periods of coma
      if(!is.null(coma_times)) {
-          anti_capd_coma_join <- join_by(id, dplyr::between(capd_time, coma_time_start, coma_time_stop, bounds = "()"))
+          anti_capd_coma_join <- join_by(id, dplyr::between(capd_time, coma_time_start, coma_time_stop, bounds = "[]"))
           df_capd <- anti_join(df_capd, coma_times, by = anti_capd_coma_join) %>%
                distinct()
      }
