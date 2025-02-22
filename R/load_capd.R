@@ -52,7 +52,8 @@ load_capd <- function(capd_filepath,
      capd_question <- recorded_time <- pat_enc_csn_id <- cust_list_map_value <- mrn <-
           enc_id <- capd_time <- capd_eye_contact <- capd_purposeful <- capd_aware <-
           capd_communicate <- capd_restless <- capd_inconsolable <- capd_movement <-
-          capd_response_time <- capd <- NULL
+          capd_response_time <- capd <- component_value <- component_name <-
+          . <- NULL
 
      # Read file with guessed column types unless specified
      df_capd <- read_delim(capd_filepath,

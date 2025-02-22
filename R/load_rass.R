@@ -69,7 +69,8 @@ load_rass <- function(rass_filepath,
 {
      # Required to avoid warnings when building package
      common_name <- recorded_time <- pat_enc_csn_id <- cust_list_map_value <- mrn <-
-          display_name <- measure_value <- enc_id <- rass_time <- rass <- NULL
+          display_name <- measure_value <- enc_id <- rass_time <- rass <-
+          rass_id_col <- NULL
 
      df_rass <- read_delim(rass_filepath,
                            delim = '|',
