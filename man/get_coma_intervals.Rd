@@ -8,11 +8,6 @@ get_coma_intervals(df_rass_intervals)
 }
 \arguments{
 \item{df_rass_intervals}{A data frame returned by \code{\link{get_rass_intervals}}.}
-
-\item{id}{A character vector of IDs for each unique patient or encounter. Generally taken from
-the variable PAT_ENC_CSN_ID, but can also create custom IDs. An example would be to use
-PAT_ENC_CSN_ID but also append an identifier (01, 02, 03, etc.) for each PICU hospitalization
-or episode of invasive mechanical ventilation.}
 }
 \value{
 A data frame with:

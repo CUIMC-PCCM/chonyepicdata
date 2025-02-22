@@ -3,10 +3,6 @@
 #' Takes data fram from \link{get_rass_intervals} and creates intervals during which
 #' each patient encounter was comatose (RASS -4 or -5).
 #'
-#' @param id A character vector of IDs for each unique patient or encounter. Generally taken from
-#' the variable PAT_ENC_CSN_ID, but can also create custom IDs. An example would be to use
-#' PAT_ENC_CSN_ID but also append an identifier (01, 02, 03, etc.) for each PICU hospitalization
-#' or episode of invasive mechanical ventilation.
 #' @param df_rass_intervals A data frame returned by \code{\link{get_rass_intervals}}.
 #'
 #' @return A data frame with:
@@ -25,12 +21,12 @@ get_coma_intervals <- function(df_rass_intervals) {
      # ***************************************************************
      capd_change <- capd_episode <- capd_time_start <- capd_time_stop <-
           timetonext <- id <- rass <- rass_time_start <- rass_time_stop <-
-          coma_time_start <- coma_time_stop <- id <-  NULL
+          coma_time_start <- coma_time_stop  <-  NULL
 
      comavarnames <- c('id', 'rass_episode', 'rass', 'rass_time_start', 'rass_time_stop', 'rass_interval_duration')
 
 
-     # ***************************************************************
+     # ***************************************df_rass_intervals************************
      # Error-catching ------------------------------------------------
      # ***************************************************************
 
