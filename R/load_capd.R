@@ -78,11 +78,22 @@ load_capd <- function(capd_filepath,
           stop(paste("The following columns were not found in the data: ", paste(missing_cols, collapse = ",")))
      }
 
+     # Convert to standard timing format
+     df_capd <- df_capd %>%
+          mutate(capd_time = lubridate::ymd_hms(capd_time))
+
+     # Make a separate dataset of when someone flagged the patient as not needing CAPD screening
+     df_capd_noscreen <- df_capd %>%
+          mutate(component_name = stringr::str_to_lower(component_name)) %>%
+          filter(component_name == 'does the patient require delirium screening?') %>%
+          mutate(capd_not_indicated = if_else(component_name == 'does the patient require delirium screening?' &
+                                              stringr::str_to_lower(component_value) == 'no'),
+            TRUE, FALSE) %>%
+          select(mrn, enc_id, capd_time, capd_not_indicated)
+
      # Perform transformation into capd (summing across components)
      df_capd <- df_capd %>%
-          mutate(capd_time = lubridate::ymd_hms(capd_time)) %>%
           mutate(component_value = as.numeric(component_value)) %>%
-          mutate(component_name = stringr::str_to_lower(component_name)) %>%
           filter(!is.na(component_value)) %>%
           filter(component_name %in% c(
                "does the child make eye contact with the caregiver?",
