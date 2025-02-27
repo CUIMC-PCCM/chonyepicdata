@@ -46,6 +46,12 @@ If this isn't working well you can send in col_guess() for each one.}
 of 9 or more means the patient screened positive for delirium.
 Any time where a component of the CAP-D was recorded as NA will not be returned.
 Scores need to be complete.
+\item \code{capd_not_indicated} TRUE if the nurse explicitly recorded that a CAPD was
+not indicated at this time. Currently this does not indicate whether the CAPD was
+not necessary because the patient was clearly lucid for age and developmental stage,
+or because the patient was comatose. The \code{capd} variable will be NA if
+\code{capd_not_indicated} is TRUE. Use \code{filter(data_frame, !capd_not_indicated)}
+to remove all of these rows if they are not necessary.
 }
 }
 \description{
