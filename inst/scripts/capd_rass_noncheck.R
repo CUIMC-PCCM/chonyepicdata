@@ -13,7 +13,9 @@ library(writexl)
 library(gtsummary)
 library(chonyepicdata)
 
-df_temp <- read_delim("C:/Users/asg2195/OneDrive - cumc.columbia.edu/Research/data/early_mobilization/Report 8D - Sedation and Delirium.txt",
+data_path <- paste0(Sys.getenv('onedrive'), '/Research/data/early_mobilization/')
+
+df_temp <- read_delim(paste0(data_path, 'Report 8D - Sedation and Delirium.txt'),
                       delim = "|", escape_double = FALSE, trim_ws = TRUE, col_types = 'cccccccccc')
 
 # *****************************************************************************
@@ -22,7 +24,7 @@ df_temp <- read_delim("C:/Users/asg2195/OneDrive - cumc.columbia.edu/Research/da
 
 # Load configuration files. You may need to edit the file (located in a config folder) with your own filepath.
 # Alternately you can just send in the correct filename.
-load_config(yml_path = 'C:/Users/asg2195/Github/early_mobilization/config/config.yml', useglobal = TRUE)
+load_config(yml_path = 'C:/Github/early_mobilization/config/config.yml', useglobal = TRUE)
 # data_path <- data_path_chony
 data_path <- paste0(Sys.getenv('onedrive'), '/Research/data/early_mobilization/')
 
@@ -88,11 +90,11 @@ df_capd_rass %>%
      arrange(enc_id, capd_time) %>%
      filter(capd_not_indicated) %>%
      mutate(rass = case_when(rass %in% c(-4, -5, 0) ~ 'Screening not indicated',
-                             rass < 0 ~ 'RASS indicated',
-                             rass > 0 ~ 'RASS indicated',
+                             rass < 0 ~ 'Indicated per RASS',
+                             rass > 0 ~ 'Indicated per RASS',
                              TRUE ~ 'RASS not checked'),
             rass = factor(rass, levels = c('Screening not indicated',
-                                           'RASS indicated',
+                                           'Indicated per RASS',
                                            'RASS not checked'),
                           ordered = TRUE)) %>%
      # arrange(mrn, enc_id, capd_time, rass) %>%
