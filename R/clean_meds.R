@@ -657,8 +657,8 @@ clean_meds <- function(df_meds,
                     med == 'diazepam' ~ interv_dose / 4,
                     med == 'morphine' & route == 'iv' ~ interv_dose,
                     med == 'morphine' & route == 'enteral' ~ interv_dose / 3,
-                    med == 'fentanyl' ~ interv_dose / 10,
-                    med == 'hydromorphone' & route == 'iv' ~ interv_dose  / 0.15,
+                    med == 'fentanyl' ~ interv_dose / 10, # 1mcg fentanyl = 0.1mg morphine IV
+                    med == 'hydromorphone' & route == 'iv' ~ interv_dose  / 0.15, # 0.15mg hydromorphone = 1mg morphine IV
                     med == 'hydromorphone' & route == 'enteral' ~ interv_dose / 5 / 0.15,
                     med == 'methadone' & route == 'iv' ~ interv_dose,
                     med == 'methadone' & route == 'enteral' ~ interv_dose / 1.5,
