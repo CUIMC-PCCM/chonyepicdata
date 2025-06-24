@@ -114,8 +114,10 @@ classify_resp_support <- function(df_resp_wide,
                     # vent_status is sometimes started/continued for CPAP or BiPAP via a vent
                     vent_status %in% c('started', 'continued') & !vent_inactive ~ TRUE,
 
-                    # Mean airway pressure is only recorded with invasive ventilation
-                    map_vent > 0 ~ TRUE,
+                    # Mean airway pressure is almost always only recorded with
+                    # invasive ventilation. We identified a rare exception with
+                    # NIV PC mode so need to account for this.
+                    map_vent > 0 & !(vent_type == 'niv' | vent_mode == 'niv pc') ~ TRUE,
 
                     # ETCO2 plus any other vent-specific setting defines IMV
                     etco2 > 0 & (pip_set > 0 | o2_deliv_method == 'ventilator' | map_vent > 0 | peep > 0 | delta_p > 0 | itime_vent > 0) ~ TRUE,
