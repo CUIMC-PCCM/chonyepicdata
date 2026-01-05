@@ -79,20 +79,9 @@ What was the patient's destination at the end of the encounter? It may make more
 Date of patient's death, if relevant.
 
 | Field Name | Type | Description | Allowed Values / Format | Example |
-|-----------|------|-------------|--------------------------|---------|
-| `MRN` | numeric | Medical record number - an identifier unique to each patient. This is consistent across all encoutners. | positive integer | `xxxxxxxxxx` |
-| `DEATH_DATE` | datetime | Date & time of death. If the  patient did not die, this value will be `NULL` | `YYYY-MM-DD HH:MM:SS`; or `NULL` | |
-
----
-
-###  3.4. <a name='Deathdate-1'></a>Death date
-
-Date of patient's death, if relevant.
-
-| Field Name | Type | Description | Allowed Values / Format | Example |
 |------------|------|-------------|-------------------------|---------|
 | `MRN` | numeric | Medical record number - an identifier unique to each patient. This is consistent across all encoutners. | positive integer | `xxxxxxxxxx` |
-| `DEATH_DATE` | datetime | Date & time of death. If the  patient did not die, this value will be `NULL` | `YYYY-MM-DD HH:MM:SS`; or `NULL` |
+| `DEATH_DATE` | datetime | Date & time of death. If the  patient did not die, this value will be `NULL` | `YYYY-MM-DD HH:MM:SS`; or `NULL` | |
 
 
 ---
