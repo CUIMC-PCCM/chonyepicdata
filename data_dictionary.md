@@ -23,8 +23,7 @@ Whenever possible data should be pulled using these nomenclatures and formats.
 	* 3.1. [Hospital encounters](#Hospitalencounters)
 	* 3.2. [Discharge disposition](#Dischargedisposition)
 	* 3.3. [Death date](#Deathdate)
-	* 3.4. [Death date](#Deathdate-1)
-	* 3.5. [ADT (Admit/Discharge/Transfer)](#ADTAdmitDischargeTransfer)
+	* 3.4. [ADT (Admit/Discharge/Transfer)](#ADTAdmitDischargeTransfer)
 
 <!-- vscode-markdown-toc-config
 	numbering=true
@@ -86,7 +85,7 @@ Date of patient's death, if relevant.
 
 ---
 
-###  3.5. <a name='ADTAdmitDischargeTransfer'></a>ADT (Admit/Discharge/Transfer)
+###  3.4. <a name='ADTAdmitDischargeTransfer'></a>ADT (Admit/Discharge/Transfer)
 
 Record of patient movement throughout the hospital, encompassing admissions, discharges, and transfers. Some transfers are virtual, meaning the patient's department or location is listed as changing due to a technicality even though the patient didn't actually physically move. An example of this is when a portable radiology study is performed. The patient is sometimes listed as "transferring" to the Radiology department, even though they stay in their room. Regardless, radiology is not a primary admitting inpatient location so this can be ignored.
 
