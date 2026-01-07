@@ -123,3 +123,26 @@ Only Admission, Discharge, Transfer In, and Transfer Out are really relevant. Th
 | `PAT_CLASS` | string | Type of patient | `Emergency`; `Inpatient`; etc |
 | `BED_LABEL` | string | Actual room location as recorded in the EHR. Generally follows the format `xxyy-zz` where `xx` is the floor, `yy` is the room number, and `zz` is the bed space. For single-digit floors, this follows the format `xyy-zz` this means the floor is a single digit (e.g. room 837-01 is the 8th floor, room 37, bed 01.)| `837-01` |
 | `PATIENT_SERVICE` | string | Hospital service or team responsible for the patient. This is input from a dropdown by the ordering provider in the EHR, and is not verified to be correct. (i.e. the ordering provider might note a patient is a surgical patient when they are actually an ICU patient).  | `Pediatric - Critical Care` |
+
+
+---
+
+### ICD10 Diagnosis codes
+
+These are diagnosis codes entered into the system in a variety of ways. All of these codes are ICD10 Clinical Modification (CM) Diagnosis Codes (as opposed to procedure codes). They can be entered in the Problem List, as an Admission diagnosis, or Billed. Billed diagnoses are supposed to be entered as A Primary Diagnosis means that it was listed as Primary (in any way), or Billed as the first diagnosis on a given day. The first Billed diagnosis is supposed to be the proximate cause for a given charge. This is only as good as the person entering the bill, however.
+
+Depending on the dataset these may be limited to diagnoses billed by a critical care attending physician, or by any physician. 
+
+These may also be constrained to a given hospital encounter, versus across all time.
+
+These are other locations to pull these data from. Notably there are encounter level diagnoses, and discharge diagnoses.
+
+| Field Name | Type | Description | Allowed Values / Format / Example |
+|------------|------|-------------|-----------------------------------|
+| `MRN` | numeric | (**NOT ALWAYS PRESENT**) Medical record number - an identifier unique to each patient. This is consistent across all encoutners. | `1234567890` |
+| `PAT_ENC_CSN_ID` | numeric | 	A unique serial number for this encounter. This number is unique across all patients and encounters in the system. One patient MRN will have multiple PAT_ENC_CSN_ID, one for each encounter. | `1234567890` |
+| `ICD10_CODE` or `ICD10` | string | ICD10-CM diagnosis code. Format with a period. These can be classified into diagnosis groups according to [HCUP Clinical Classification Software](https://hcup-us.ahrq.gov/toolssoftware/ccsr/dxccsr.jsp). The R package [pccc](https://cran.r-project.org/web/packages/pccc/index.html) also may be very useful for classifying complex chronic conditions. | `R63.30` |
+| `DX_NAME` | string | Description of `ICD10_CODE` field. | `Feeding difficulties, unspecified` |
+| `DX_DATE` | datetime | Date/time when the the ICD10 code was entered. | `YYYY-MM-DD HH:MM:SS` |
+| `PRIMARY_DX_YN` | factor | Value is `Y` if this code was listed as a primary diagnosis, or as the first Bill diagnosis. Otherwisw `N`  | `Y` or `N` |
+| `DX_TYPE` | string | Where in the patient record did the ICD10 code originate? | `Admission`; `Billed 1`; `Billed 2`; `Billed 3`; `Billed 4`; `Billed 5`; `Billed 6`; `Hospital Problem List` |
