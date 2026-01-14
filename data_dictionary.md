@@ -24,6 +24,8 @@ Whenever possible data should be pulled using these nomenclatures and formats.
 	* 3.2. [Discharge disposition](#Dischargedisposition)
 	* 3.3. [Death date](#Deathdate)
 	* 3.4. [ADT (Admit/Discharge/Transfer)](#ADTAdmitDischargeTransfer)
+	* 3.5. [ICD10 Diagnosis codes](#ICD10Diagnosiscodes)
+	* 3.6. [Medications](#Medications)
 
 <!-- vscode-markdown-toc-config
 	numbering=true
@@ -127,7 +129,7 @@ Only Admission, Discharge, Transfer In, and Transfer Out are really relevant. Th
 
 ---
 
-### ICD10 Diagnosis codes
+###  3.5. <a name='ICD10Diagnosiscodes'></a>ICD10 Diagnosis codes
 
 These are diagnosis codes entered into the system in a variety of ways. All of these codes are ICD10 Clinical Modification (CM) Diagnosis Codes (as opposed to procedure codes). They can be entered in the Problem List, as an Admission diagnosis, or Billed. Billed diagnoses are supposed to be entered as A Primary Diagnosis means that it was listed as Primary (in any way), or Billed as the first diagnosis on a given day. The first Billed diagnosis is supposed to be the proximate cause for a given charge. This is only as good as the person entering the bill, however.
 
@@ -149,7 +151,7 @@ These are other locations to pull these data from. Notably there are encounter l
 
 ---
 
-### Medications
+###  3.6. <a name='Medications'></a>Medications
 
 Medication events taken from the Medication Administration Record (MAR). Unlike many other medication tables, this is from nurse charting of every medication event. This is the surest way to know if medications were actually given, and at what dose. The reason is that medications are commonly ordered but never actually given, whether because the order was wrong, the doctor changed her/his mind and the order was later canceled, or the dose was altered in some way later. This is muhc higher fidelity.
 
