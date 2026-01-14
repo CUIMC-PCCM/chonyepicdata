@@ -16,6 +16,25 @@ Whenever possible data should be pulled using these nomenclatures and formats.
 
 ---
 
+<!-- vscode-markdown-toc -->
+* 1. [📂 Dataset Overview](#DatasetOverview)
+* 2. [📝 Change Log](#ChangeLog)
+* 3. [🧬 Report types](#Reporttypes)
+	* 3.1. [Hospital encounters](#Hospitalencounters)
+	* 3.2. [Discharge disposition](#Dischargedisposition)
+	* 3.3. [Death date](#Deathdate)
+	* 3.4. [ADT (Admit/Discharge/Transfer)](#ADTAdmitDischargeTransfer)
+	* 3.5. [ICD10 Diagnosis codes](#ICD10Diagnosiscodes)
+	* 3.6. [Medications](#Medications)
+
+<!-- vscode-markdown-toc-config
+	numbering=true
+	autoSave=true
+	/vscode-markdown-toc-config -->
+<!-- /vscode-markdown-toc -->
+
+---
+
 ##  2. <a name='ChangeLog'></a>📝 Change Log
 | Date | Change | Author |
 |------|---------|--------|
