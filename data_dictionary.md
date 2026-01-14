@@ -16,22 +16,16 @@ Whenever possible data should be pulled using these nomenclatures and formats.
 
 ---
 
-<!-- vscode-markdown-toc -->
-* 1. [📂 Dataset Overview](#DatasetOverview)
-* 2. [📝 Change Log](#ChangeLog)
-* 3. [🧬 Report types](#Reporttypes)
-	* 3.1. [Hospital encounters](#Hospitalencounters)
-	* 3.2. [Discharge disposition](#Dischargedisposition)
-	* 3.3. [Death date](#Deathdate)
-	* 3.4. [ADT (Admit/Discharge/Transfer)](#ADTAdmitDischargeTransfer)
-	* 3.5. [ICD10 Diagnosis codes](#ICD10Diagnosiscodes)
-	* 3.6. [Medications](#Medications)
-
-<!-- vscode-markdown-toc-config
-	numbering=true
-	autoSave=true
-	/vscode-markdown-toc-config -->
-<!-- /vscode-markdown-toc -->
+1. [Data Dictionary](#data-dictionary)
+	1. [1. 📂 Dataset Overview](#1--dataset-overview)
+	2. [2. 📝 Change Log](#2--change-log)
+	3. [3. 🧬 Report types](#3--report-types)
+		1. [3.1. Hospital encounters](#31-hospital-encounters)
+		2. [3.2. Discharge disposition](#32-discharge-disposition)
+		3. [3.3. Death date](#33-death-date)
+		4. [3.4. ADT (Admit/Discharge/Transfer)](#34-adt-admitdischargetransfer)
+		5. [3.5. ICD10 Diagnosis codes](#35-icd10-diagnosis-codes)
+		6. [3.6. Medications](#36-medications)
 
 ---
 
