@@ -163,10 +163,10 @@ Medication events taken from the Medication Administration Record (MAR). Unlike 
 | `CONCENTRATION`    | string | For medications dissolved in a fluid, concentration of the medication to be delivered. | `4mcg/mL`, `1g/mL`, etc. |
 | `INFUSION_RATE`    | double | For medications infused over a duration of time, the rate at which the medication is infused. This is usually in mL/hr, but sometimes in mL/min. Patient dosing weight is not included in this table, so if you lack the weight in kilograms (kg), this can be used to back-calculate the dosing weight. e.g. for a rate of 7.98mL/hr, a concentration of 4mg/mL, and a dose of 0.7mg/kg/hr, the dosing weight is (7.98*4)/0.7 = 45.6kg.| `3.4`, `2`, `NULL`, etc | 
 | `FREQUENCY`        | string | How often is the medication taken? | `Continuous` (for infusions), `Every 12 hours`, `Once`, etc. |
-| ROUTE            | string | How is the medication taken by the patient? | `Intravenous`, `Oral`, `Nebulization`, `Nasoduodenal tube`, etc. |
-| TAKEN_TIME       | datetime | Time when the medication was physically given to the patient. | `2021-09-10 10:36:00.000` |
-| COMMENTS         | string | Rarely used or relevant. Most commonly used by the nurses to document why a medication was given in an unusual way, or by someone else. | Any string, e.g. `vomited 10 minutes after given` |
-| RESULT           | string | The 'result' of the medication administration. Most commonly whether the medication was given or not. Since this is MAR charting, a lot of these events are things like when a new bag of a medication was delivered by pharmacy and hung by the nurse when the old bag ran out of medication. A lot of previous work was done to understand which `RESULT` indicates meds were given versus stopped. | Any string, e.g.  `Given`, `Stopped`, `Started`, `Verification`, `Rate/Dose Change` (see below) |
+| `ROUTE`            | string | How is the medication taken by the patient? | `Intravenous`, `Oral`, `Nebulization`, `Nasoduodenal tube`, etc. |
+| `TAKEN_TIME`       | datetime | Time when the medication was physically given to the patient. | `2021-09-10 10:36:00.000` |
+| `COMMENTS`         | string | Rarely used or relevant. Most commonly used by the nurses to document why a medication was given in an unusual way, or by someone else. | Any string, e.g. `vomited 10 minutes after given` |
+| `RESULT`           | string | The 'result' of the medication administration. Most commonly whether the medication was given or not. Since this is MAR charting, a lot of these events are things like when a new bag of a medication was delivered by pharmacy and hung by the nurse when the old bag ran out of medication. A lot of previous work was done to understand which `RESULT` indicates meds were given versus stopped. | Any string, e.g.  `Given`, `Stopped`, `Started`, `Verification`, `Rate/Dose Change` (see below) |
 
 This is my best attempt at clarifying what the different `RESULT` fields mean.
 
