@@ -34,7 +34,7 @@ col_guess() for each one.}
 \item{max_load}{The maximum number of rows to load. The default is \code{Inf}}
 }
 \value{
-#' @return A data frame with:
+Return A data frame with:
 \itemize{
 \item \code{mrn}: Medical record number
 \item \code{enc_id}: Encounter ID, renamed from PAT_ENC_CSN_ID

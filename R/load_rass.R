@@ -97,7 +97,7 @@ load_rass <- function(rass_filepath,
      df_rass <- df_rass %>%
           dplyr::filter(str_detect(rass_id_col, 'RASS')) %>%
           mutate(across(where(is.character), str_to_lower)) %>%
-          mutate(rass_time = lubridate::ymd_hms(rass_time)) %>%
+          mutate(rass_time = lubridate::ymd_hms(rass_time, truncated = 3)) %>%
           select(mrn, enc_id, rass_time, rass) %>%
           mutate(rass = as.numeric(rass))
 

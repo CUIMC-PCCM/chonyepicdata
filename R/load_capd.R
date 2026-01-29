@@ -22,7 +22,8 @@
 #'  col_guess() for each one.
 #'@param max_load The maximum number of rows to load. The default is \code{Inf}
 #'
-#'@return #' @return A data frame with:
+#'@return
+#' Return A data frame with:
 #' \itemize{
 #' \item \code{mrn}: Medical record number
 #' \item \code{enc_id}: Encounter ID, renamed from PAT_ENC_CSN_ID
@@ -83,8 +84,10 @@ load_capd <- function(capd_filepath,
      }
 
      # Convert to standard timing format
+     # Important to include the 'truncated = 3' argument with ymd_hms().
+     # Otherwise this will fail for midnight times, which are actually just recorded as ymd
      df_capd <- df_capd %>%
-          mutate(capd_time = lubridate::ymd_hms(capd_time)) %>%
+          mutate(capd_time = lubridate::ymd_hms(capd_time, truncated = 3)) %>%
           mutate(component_name = stringr::str_to_lower(component_name))
 
      # Make a separate dataset of when someone flagged the patient as not needing CAPD screening
@@ -101,6 +104,7 @@ load_capd <- function(capd_filepath,
           filter(!is.na(component_value)) %>%
           filter(component_name %in% c(
                "does the child make eye contact with the caregiver?",
+               "does the child male eye contact with the caregiver?",  # note that there is a typo in early versions
                "are the child's actions purposeful?",
                "is the child aware of his/her surroundings?",
                "does the child communicate needs and wants?",
@@ -111,6 +115,7 @@ load_capd <- function(capd_filepath,
           )) %>%
           mutate(component_name = case_when(
                component_name == "does the child make eye contact with the caregiver?" ~ "capd_component_eye_contact",
+               component_name == "does the child male eye contact with the caregiver?" ~ "capd_component_eye_contact", # there is a typo in some versions
                component_name == "are the child's actions purposeful?" ~ "capd_component_purposeful",
                component_name == "is the child aware of his/her surroundings?" ~ "capd_component_aware",
                component_name == "does the child communicate needs and wants?" ~ "capd_component_communicate",
@@ -129,8 +134,8 @@ load_capd <- function(capd_filepath,
           filter(!is.na(capd)) %>%
           arrange(mrn, enc_id, capd_time)
 
-     df_capd <- full_join(df_capd, df_capd_noscreen) %>%
-          mutate(capd_not_indicated = replace_na(capd_not_indicated, FALSE)) %>%
+     df_capd <- dplyr::full_join(df_capd, df_capd_noscreen) %>%
+          mutate(capd_not_indicated = tidyr::replace_na(capd_not_indicated, FALSE)) %>%
           arrange(mrn, enc_id, capd_time)
 
      return(df_capd)

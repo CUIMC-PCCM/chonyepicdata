@@ -61,7 +61,7 @@ load_rass_old <- function(rass_filepath,
           clean_names() %>%
           dplyr::filter(str_detect(common_name, '^RASS')) %>%
           mutate(across(where(is.character), str_to_lower)) %>%
-          mutate(recorded_time = lubridate::ymd_hms(recorded_time)) %>%
+          mutate(recorded_time = lubridate::ymd_hms(recorded_time, truncated = 3)) %>%
           rename(enc_id = pat_enc_csn_id,
                  rass_time = recorded_time,
                  rass = cust_list_map_value) %>%
