@@ -9,7 +9,7 @@ clean_meds(
   medlist = c("midazolam", "lorazepam", "diazepam", "clonazepam", "alprazolam",
     "morphine", "fentanyl", "hydromorphone", "oxycodone", "clonidine", "ketamine",
     "pentobarbital", "quetiapine", "haloperidol", "risperidone", "olanzapine",
-    "aripiprazole", "diphenhydramine", "hydroyxyzine", "rocuronium", "vecuronium",
+    "aripiprazole", "diphenhydramine", "hydroxyzine", "rocuronium", "vecuronium",
     "cisatracurium", "dexmedetomidine"),
   mar_med_given = c("anesthesia volume adjustment",
     "bolus from bag (dual sign required)", "bolus from bag",
