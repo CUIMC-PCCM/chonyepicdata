@@ -283,27 +283,22 @@ classify_resp_support <- function(df_resp_wide,
           ) %>%
           ungroup()
 
-     # Back this up for a later merge
-     df_resp_wide_all_for_merge <- df_resp_all
-
      if(verbose) {
           print('Finding start/stop times of changed support levels...')
      }
 
-     # Get start/stop times for each episode of support, and calculate a duration of time
-     # The duration of time spans from the beginning of the new episode, to the beginning of
-     # the *next* new episode
+     # Get start/stop times for each episode of support, and calculate a duration of time.
+     # current_support is the same for all rows within an episode so first() is always correct,
+     # avoiding the need for a backup copy and a subsequent left_join to retrieve it.
      df_resp_all <- df_resp_all %>%
           group_by(enc_id, support_episode) %>%
           summarize(
+               current_support    = first(current_support),
                support_time_start = min(resp_meas_time),
-               support_time_stop = max(resp_meas_time)
+               support_time_stop  = max(resp_meas_time),
+               .groups = 'drop'
           ) %>%
-          ungroup() %>%
-          left_join(df_resp_wide_all_for_merge, join_by('enc_id', 'support_time_start' == 'resp_meas_time', 'support_episode')) %>%
-          select(enc_id, support_episode, current_support, support_time_start, support_time_stop) %>%
           group_by(enc_id) %>%
-          # mutate(timediff = as.duration(lead(support_time_start, default = last(support_time_stop)) - support_time_start)) %>%
           mutate(timediff = as.duration(support_time_stop - support_time_start)) %>%
           ungroup() %>%
           arrange(enc_id, support_time_start)
