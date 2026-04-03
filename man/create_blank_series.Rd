@@ -14,7 +14,7 @@ create_blank_series(id, starttime, stoptime, increment = "hours")
 \item{stoptime}{A datetime identifying the end of the time series}
 
 \item{increment}{A character specifying how often to increment the series.
-Default is 'hours'. Can use anything that \code{sec()} would accept, such as 'mins',
+Default is 'hours'. Can use anything that \code{base::seq()} would accept, such as 'mins',
 'days', etc.}
 }
 \value{

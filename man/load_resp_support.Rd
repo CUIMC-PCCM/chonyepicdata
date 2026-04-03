@@ -7,7 +7,11 @@
 load_resp_support(
   resp_filepath,
   resp_coltypes = list(col_character(), col_character(), col_character(),
-    col_character(), col_datetime()),
+    col_character(), col_character(), col_character(), col_character(), col_character(),
+    col_datetime()),
+  col_names = c(enc_id = "pat_enc_csn_id", display_name = "display_name",
+    flowsheet_measure_id = "flowsheet_measure_id", measure_value = "measure_value",
+    resp_meas_time = "recorded_time"),
   resp_to_load = NA,
   max_load = Inf
 )
@@ -20,7 +24,14 @@ Cols specifications are things like col_integer(), col_character(), and can be f
 within the \code{\link[readr]{cols}} documentation from the \code{readr} package.
 If this isn't working well you can send in col_guess().}
 
-\item{resp_to_load}{Names of vent settings/measurements to load. Defaults to all.}
+\item{col_names}{A named character vector mapping the standardized internal column names
+used by this package to the actual column names in your file (after \code{clean_names()}
+has been applied, i.e. lowercase snake_case). Override individual entries if your file
+uses different column names. The names on the left are fixed internal names; the values
+on the right should match your file's columns.}
+
+\item{resp_to_load}{Names of vent settings/measurements to load (matched against the
+display_name column). Defaults to all.}
 
 \item{max_load}{Maximum number of rows}
 }

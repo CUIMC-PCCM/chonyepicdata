@@ -12,7 +12,7 @@
 clean_resp_support <- function(df_resp) {
 
      # Required to avoid warnings when building package
-     cpap_rt <- cpap_level <- resp_meas_name <-
+     . <- cpap_rt <- cpap_level <- resp_meas_name <-
           flowsheet_measure_id <- measure_value <- NULL
 
      # Categorize useful data and get rid of the rest
