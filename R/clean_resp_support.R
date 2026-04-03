@@ -12,13 +12,13 @@
 clean_resp_support <- function(df_resp) {
 
      # Required to avoid warnings when building package
-     cpap_rt <- cpap_level <- mrn <- measure_name <- resp_meas_name <-
-          flowsheet_measure_id <- measure_value  <- display_name <-  NULL
+     cpap_rt <- cpap_level <- resp_meas_name <-
+          flowsheet_measure_id <- measure_value <- NULL
 
      # Categorize useful data and get rid of the rest
      df_resp_wide <- suppressWarnings(
           df_resp %>%
-               select(-display_name) %>%
+               select(any_of(c('enc_id', 'resp_meas_time', 'flowsheet_measure_id', 'measure_value'))) %>%
                mutate(resp_meas_name = case_when(
                     flowsheet_measure_id == 3040102552 ~	'amp_hfov',
                     flowsheet_measure_id == 30446600302 ~	'bcpap_status',
@@ -92,9 +92,9 @@ clean_resp_support <- function(df_resp) {
 
      # Convert columns to numeric variables where able. Explicitly remove non-numerics.
      df_resp_wide <- df_resp_wide %>%
-          mutate(across(numeric_vars, ~str_remove_all(.x, '[^0-9.]'))) %>%
-          mutate(across(numeric_vars, ~if_else(.x == '', NA, .x))) %>%
-          mutate(across(numeric_vars, as.numeric, na.rm = TRUE))
+          mutate(across(any_of(numeric_vars), ~str_remove_all(.x, '[^0-9.]'))) %>%
+          mutate(across(any_of(numeric_vars), ~if_else(.x == '', NA, .x))) %>%
+          mutate(across(any_of(numeric_vars), as.numeric))
 
      # Remove any row where all values are NA
      df_resp_wide <- df_resp_wide %>% filter(dplyr::if_any(3:dim(df_resp_wide)[2], ~ !is.na(.)))
