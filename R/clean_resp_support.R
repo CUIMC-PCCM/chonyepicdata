@@ -63,10 +63,12 @@ clean_resp_support <- function(df_resp) {
                # For some reason there are two cpap variables that almost always agree,
                # but occasionally don't. Keep the more frequently populated one, and if it doesn't have a value,
                # replace it with the other one.
-               mutate(cpap_level = as.numeric(str_remove_all(cpap_level, '\\+|\\-')),
-                      cpap_rt = as.numeric(str_remove_all(cpap_rt, '\\+|\\-'))) %>%
-               mutate(cpap = if_else(is.na(cpap_level), cpap_rt, cpap_level)) %>%
-               select(-cpap_level, -cpap_rt)
+               mutate(across(any_of(c('cpap_level', 'cpap_rt')), ~as.numeric(str_remove_all(.x, '\\+|\\-')))) %>%
+               mutate(cpap = dplyr::coalesce(
+                    if ('cpap_level' %in% names(.)) .data[['cpap_level']] else NA_real_,
+                    if ('cpap_rt' %in% names(.)) .data[['cpap_rt']] else NA_real_
+               )) %>%
+               select(-any_of(c('cpap_level', 'cpap_rt')))
      )
 
      numeric_vars <- c('amp_hfov',
