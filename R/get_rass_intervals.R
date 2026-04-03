@@ -36,38 +36,28 @@ get_rass_intervals <- function(id, rass, rass_time, max_inter_ep_duration = 4) {
      # ***************************************************************
 
      # Make sure variable ID is a character
-     tryCatch({
-
-          if(!is.character(id)) {
-               id <- as.character(id)
-          }
-     },
-     error = function(e) {
-          cat('Error: variable \'id\' must either be a character, or be coercible to a character.')
-          return(NULL)
-     })
+     if(!is.character(id)) {
+          tryCatch(
+               id <- as.character(id),
+               error = function(e) stop("variable 'id' must either be a character, or be coercible to a character.")
+          )
+     }
 
      # Make sure variable rass is an integer
-     tryCatch({
-          if(!is.integer(rass)) {
-               rass <- as.integer(rass)
-          }
-     },
-     error = function(e) {
-          cat('Error: variable \'rass\' must either be an integer, or be coercible to an integer')
-          return(NULL)
-     })
+     if(!is.integer(rass)) {
+          tryCatch(
+               rass <- as.integer(rass),
+               error = function(e) stop("variable 'rass' must either be an integer, or be coercible to an integer.")
+          )
+     }
 
      # Make sure variable rass_time is a datetime
-     tryCatch({
-          if(!lubridate::is.POSIXct(rass_time)) {
-               rass_time <- lubridate::as_datetime(rass_time)
-          }
-     },
-     error = function(e) {
-          cat('Error: variable \'rass_time\' must be coercible to a datetime (POSIXct) format')
-          return(NULL)
-     })
+     if(!lubridate::is.POSIXct(rass_time)) {
+          tryCatch(
+               rass_time <- lubridate::as_datetime(rass_time),
+               error = function(e) stop("variable 'rass_time' must be coercible to a datetime (POSIXct) format.")
+          )
+     }
 
      # Make sure all variables have the same length
      lengths <- c(length(id), length(rass), length(rass_time))
@@ -88,7 +78,7 @@ get_rass_intervals <- function(id, rass, rass_time, max_inter_ep_duration = 4) {
      # Find times where the RASS changes and number the episodes
      df_rass <- df_rass %>%
           group_by(id) %>%
-          mutate(rass_change = rass != lag(rass, default = 20),
+          mutate(rass_change = is.na(lag(rass)) | rass != lag(rass),
                  rass_episode = cumsum(rass_change)) %>%
           ungroup()
 
@@ -96,7 +86,7 @@ get_rass_intervals <- function(id, rass, rass_time, max_inter_ep_duration = 4) {
      # Also find the time until the "next" interval.
      df_rass <- df_rass %>%
           group_by(id, rass_episode) %>%
-          dplyr::reframe(rass = min(rass),
+          dplyr::reframe(rass = dplyr::first(rass),
                          rass_time_start = min(rass_time),
                          rass_time_stop = max(rass_time)) %>%
           group_by(id) %>%
@@ -113,7 +103,8 @@ get_rass_intervals <- function(id, rass, rass_time, max_inter_ep_duration = 4) {
           mutate(rass_time_stop = pmin(rass_time_stop + hours(max_inter_ep_duration),
                                        lead(rass_time_start, default = max(rass_time_stop)), na.rm = TRUE),
                  rass_interval_duration = as.duration(interval(rass_time_start, rass_time_stop))) %>%
-          select(-timetonext)
+          select(-timetonext) %>%
+          ungroup()
 
 
      return(df_rass)

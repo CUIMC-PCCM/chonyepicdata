@@ -67,38 +67,28 @@ get_capd_intervals <- function(id, capd, capd_time, coma_times=NULL, max_inter_e
      # ***************************************************************
 
      # Make sure variable ID is a character
-     tryCatch({
-
-          if(!is.character(id)) {
-               id <- as.character(id)
-          }
-     },
-     error = function(e) {
-          cat('Error: variable \'id\' must either be a character, or be coercible to a character.')
-          return(NULL)
-     })
+     if(!is.character(id)) {
+          tryCatch(
+               id <- as.character(id),
+               error = function(e) stop("variable 'id' must either be a character, or be coercible to a character.")
+          )
+     }
 
      # Make sure variable capd is an integer
-     tryCatch({
-          if(!is.integer(capd)) {
-               capd <- as.integer(capd)
-          }
-     },
-     error = function(e) {
-          cat('Error: variable \'capd\' must either be an integer, or be coercible to an integer')
-          return(NULL)
-     })
+     if(!is.integer(capd)) {
+          tryCatch(
+               capd <- as.integer(capd),
+               error = function(e) stop("variable 'capd' must either be an integer, or be coercible to an integer.")
+          )
+     }
 
      # Make sure variable capd_time is a datetime
-     tryCatch({
-          if(!lubridate::is.POSIXct(capd_time)) {
-               capd_time <- lubridate::as_datetime(capd_time)
-          }
-     },
-     error = function(e) {
-          cat('Error: variable \'capd_time\' must be coercible to a datetime (POSIXct) format')
-          return(NULL)
-     })
+     if(!lubridate::is.POSIXct(capd_time)) {
+          tryCatch(
+               capd_time <- lubridate::as_datetime(capd_time),
+               error = function(e) stop("variable 'capd_time' must be coercible to a datetime (POSIXct) format.")
+          )
+     }
 
      # Make sure all variables have the same length
      lengths <- c(length(id), length(capd), length(capd_time))
@@ -128,7 +118,7 @@ get_capd_intervals <- function(id, capd, capd_time, coma_times=NULL, max_inter_e
      # Find times where the CAPD changes and number the episodes
      df_capd <- df_capd %>%
           group_by(id) %>%
-          mutate(capd_change = capd != lag(capd, default = FALSE),
+          mutate(capd_change = is.na(lag(capd)) | capd != lag(capd),
                  capd_episode = cumsum(capd_change*1)) %>%
           ungroup()
 
@@ -136,7 +126,7 @@ get_capd_intervals <- function(id, capd, capd_time, coma_times=NULL, max_inter_e
      # Also find the time until the "next" interval.
      df_capd <- df_capd %>%
           group_by(id, capd_episode) %>%
-          dplyr::reframe(capd = max(capd),
+          dplyr::reframe(capd = dplyr::first(capd),
                   capd_time_start = min(capd_time),
                   capd_time_stop = max(capd_time)) %>%
           group_by(id) %>%

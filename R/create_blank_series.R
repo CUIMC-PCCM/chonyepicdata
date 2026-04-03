@@ -11,7 +11,7 @@
 #' @param starttime A datetime identifying the beginning of the time series.
 #' @param stoptime A datetime identifying the end of the time series
 #' @param increment A character specifying how often to increment the series.
-#' Default is 'hours'. Can use anything that \code{sec()} would accept, such as 'mins',
+#' Default is 'hours'. Can use anything that \code{base::seq()} would accept, such as 'mins',
 #' 'days', etc.
 #'
 #' @return A long-format data frame consisting of IDs and timestamps. The timestamp
@@ -36,44 +36,33 @@ create_blank_series <- function(id,
      # *****************************************************************************
 
      # Make sure variable ID is a character
-     tryCatch({
-
-          if(!is.character(id)) {
-               id <- as.character(id)
-          }
-     },
-     error = function(e) {
-          cat('Error: variable \'id\' must either be a character, or be coercible to a character.')
-          return(NULL)
-     })
+     if(!is.character(id)) {
+          tryCatch(
+               id <- as.character(id),
+               error = function(e) stop("variable 'id' must either be a character, or be coercible to a character.")
+          )
+     }
 
      # Make sure variable starttime is a datetime
-     tryCatch({
-          if(!lubridate::is.POSIXct(starttime)) {
-               starttime <- lubridate::as_datetime(starttime)
-          }
-     },
-     error = function(e) {
-          cat('Error: variable \'stoptime\' must be coercible to a datetime (POSIXct) format')
-          return(NULL)
-     })
+     if(!lubridate::is.POSIXct(starttime)) {
+          tryCatch(
+               starttime <- lubridate::as_datetime(starttime),
+               error = function(e) stop("variable 'starttime' must be coercible to a datetime (POSIXct) format")
+          )
+     }
 
      # Make sure variable stoptime is a datetime
-     tryCatch({
-          if(!lubridate::is.POSIXct(stoptime)) {
-               stoptime <- lubridate::as_datetime(stoptime)
-          }
-     },
-     error = function(e) {
-          cat('Error: variable \'stoptime\' must be coercible to a datetime (POSIXct) format')
-          return(NULL)
-     })
+     if(!lubridate::is.POSIXct(stoptime)) {
+          tryCatch(
+               stoptime <- lubridate::as_datetime(stoptime),
+               error = function(e) stop("variable 'stoptime' must be coercible to a datetime (POSIXct) format")
+          )
+     }
 
      # Make sure variable increment is a valid setting
      if(!(increment %in% c('secs', 'mins', 'hours', 'days', 'weeks', 'months')))
      {
           stop('Variable \'increment\' must be one of \'secs\', \'mins\', \'hours\', \'days\', \'weeks\', \'months\'')
-          return(NULL)
      }
 
      # Make sure all variables have the same length
@@ -86,7 +75,6 @@ create_blank_series <- function(id,
      if(any(stoptime <= starttime))
      {
           stop('starttime must always precede stoptime')
-          return(NULL)
      }
 
      # *****************************************************************************
@@ -94,10 +82,11 @@ create_blank_series <- function(id,
      # *****************************************************************************
 
      df_startstop <- dplyr::tibble(id = id, starttime = starttime, stoptime = stoptime) %>%
-          dplyr::rowwise() %>%
-          mutate(starttime = lubridate::round_date(starttime, unit = increment),
-                 stoptime = lubridate::round_date(stoptime, unit = increment)) %>%
-          mutate(timestamp = list(seq(from = starttime, to = stoptime, by = increment))) %>%
+          mutate(
+               starttime = lubridate::round_date(starttime, unit = increment),
+               stoptime  = lubridate::round_date(stoptime,  unit = increment),
+               timestamp = map2(starttime, stoptime, ~seq(from = .x, to = .y, by = increment))
+          ) %>%
           tidyr::unnest(timestamp) %>%
           select(id, timestamp)
 

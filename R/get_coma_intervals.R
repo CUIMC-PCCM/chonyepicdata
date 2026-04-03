@@ -31,7 +31,7 @@ get_coma_intervals <- function(df_rass_intervals) {
      # ***************************************************************
 
      # Make the correct type of data frame was sent in
-     if(!all(names(df_rass_intervals) == comavarnames)) {
+     if(!identical(names(df_rass_intervals), comavarnames)) {
           stop(paste('df_rass_intervals must have column names id, rass_episode, rass_time_start, rass_time_stop, rass_interval_duration'))
      } else {
           z <- sapply(df_rass_intervals, class)

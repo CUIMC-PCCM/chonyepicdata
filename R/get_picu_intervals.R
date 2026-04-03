@@ -128,99 +128,59 @@ get_picu_intervals <- function(adt_filepath,
      # Drop any "virtual" locations, and also any procedural locations like the
      # operating room or endoscopy suite because patients never "stay" in those spots after
      # the procedure
-     df_adt <- df_adt %>% filter(!(department_name %in% c(virtual_locations,
-                                                          or_locations))) %>%
-          mutate(department_name = forcats::fct_drop(department_name))
-
-     # Sometimes the first event that occurred isn't listed as an admission.
-     # Re-define the 1st event as an admission
      df_adt <- df_adt %>%
-          group_by(mrn, enc_id) %>%
-          arrange(adt_date) %>%
-          mutate(event_type = if_else(row_number() == 1, 'admit', event_type),
-                 event_type = factor(event_type)
-          ) %>%
-          ungroup()
+          filter(!(department_name %in% c(virtual_locations, or_locations)))
 
-     # Group patients by admission date. Determine when patients changed locations.
-     # We only need to use admits, discharges, and transfer_in events (can drop all others).
-     # The strategy is to check, row-by-row for each patient, if the location for the current
-     # row matches the location for the prior row. If they match, the patient did not move and
-     # we can ultimately drop this row. If they don't match, this involves a change of
-     # location.
-     # Pre-admit refers to the first row, which by definition can't match.
+     # Consolidate all transition logic into a single grouped pass:
+     # - Fix first event as admit
+     # - Compute lag-based transition columns
+     # - Filter to meaningful events (location changes, admits, discharges)
+     # - Compute ICU start/stop flags
+     # Pre-admit refers to the first row, which by definition can't match a prior location.
+     # OR and virtual locations were already removed above, so ICU -> OR -> ICU
+     # correctly appears as a continuous ICU stay.
      adt_temp <- df_adt %>%
           filter(event_type %in% c('admit', 'discharge', 'transfer_in')) %>%
           mutate(department_name = as.character(department_name)) %>%
           group_by(mrn, enc_id) %>%
-          arrange(mrn, enc_id, adt_date) %>%
+          arrange(adt_date, .by_group = TRUE) %>%
           mutate(
-               # Location prior to this one. Set equal to pre_admit if it wasn't defined.
-               last_loc = lag(department_name),
-               last_loc = tidyr::replace_na(last_loc, 'pre_admit'),
+               # Fix first event as admit
+               event_type     = if_else(row_number() == 1, 'admit', event_type),
+               event_type     = factor(event_type),
 
-               # Level of care prior to this one (PICU or non-PICU).
-               # Set equal to pre_admit if it wasn't defined.
-               last_care_level = lag(level_of_care),
-               last_care_level = forcats::fct_na_value_to_level(last_care_level, level = 'pre_admit'),
+               # Location and care level of the prior row
+               last_loc        = tidyr::replace_na(lag(department_name), 'pre_admit'),
+               last_care_level = forcats::fct_na_value_to_level(lag(level_of_care), level = 'pre_admit'),
+               last_row        = row_number() == dplyr::n()
+          ) %>%
 
-               # Create a classification for the last entry for a patient (which may or may
-               # not be the discharge
-               last_row = if_else(row_number() == dplyr::n(), TRUE, FALSE)) %>%
-
-          ungroup() %>%
-
-          # Only keep rows where the last level of care is different than the current level of care, which
-          # defines a "meaningful" (i.e. outside PICU to PICU, or vice versa).
-          # Keep first and last entries (usually admit/discharge) by default.
+          # Keep only meaningful transitions: admits, discharges, last rows, or care-level changes
           filter(event_type == 'admit' | event_type == 'discharge' | last_row |
-                      (as.character(last_care_level) != as.character(level_of_care)))
+                      (as.character(last_care_level) != as.character(level_of_care))) %>%
 
-     # Get a value for "last PICU" which is TRUE if the prior row for this patient was a
-     # PICU hospitalization
-     adt_temp <- adt_temp %>% group_by(mrn, enc_id) %>%
+          # After filtering, re-compute lag on picu and derive ICU start/stop flags
           mutate(
-               last_picu = lag(picu),
-               last_picu = tidyr::replace_na(last_picu, FALSE)) %>%
+               last_picu = tidyr::replace_na(lag(picu), FALSE),
+               icu_start = !last_picu & picu,
+               icu_stop  = (!picu & last_picu) | (picu & row_number() == dplyr::n())
+          ) %>%
           ungroup()
 
-     # Find the start and stop dates for ICU hospitalizations. There can be multiple per patient
-     # If a patient was discharged from the ICU, then set this as the stop date
-     #   Whenever "last_picu" is false and "picu" is true, this is a transition that defines a new PICU course.
-     #   Whenever "last_picu" is true and "picu" is false, this transition defines the end of a new PICU course.
-     #     If the last event occurred within a PICU, then this is also the stop of a PICU course.
-     adt_icu <- adt_temp %>%
+     # Pair ICU start and stop dates by episode number.
+     # Each ICU episode is numbered by cumulative starts per patient encounter.
+     # This is more robust than pivot_longer/pivot_wider, which assumes matched list lengths.
+     adt_icu_simple <- adt_temp %>%
+          filter(icu_start | icu_stop) %>%
           group_by(mrn, enc_id) %>%
-          arrange(mrn, enc_id, adt_date) %>%
-          mutate(icu_start = if_else(!last_picu & picu, TRUE, FALSE, FALSE),
-                 icu_stop = if_else(!picu & last_picu, TRUE, FALSE, FALSE),
-                 icu_stop = if_else(picu & row_number() == dplyr::n(), TRUE, icu_stop, icu_stop),
-                 any_picu = if_else(any(picu), TRUE, FALSE)) %>%
-          ungroup()
-
-
-     # Create a simple dataset of these ICU events
-     # the "values_fn = list" just suppresses an annoying warning about duplicates.
-     # The output format is that each row will have an MRN, an event ID, and an ICU start and the subsequent ICU stop date.
-     # These windows of time can be used to filter any other results.
-     # If any event from another table occurred between a given icu_start_date and icu_stop_date, then
-     # the event happened within an ICU.
-     # the start and stop dates are formatted as datetimes in case we need to be very specific about timepoints, but can also be
-     # use the "floor" for the start date, and the "ceiling" for the stop date, to ensure the entire duration is captured.
-     # the values_fn = list just suppresses an annoying warning about duplicates
-     adt_icu_simple <- adt_icu %>%
-          select(mrn, enc_id, icu_start, icu_stop, adt_date) %>%
-          mutate(icu_start_date = if_else(icu_start, adt_date, NA_POSIXct_),
-                 icu_stop_date = if_else(icu_stop, adt_date, NA_POSIXct_)) %>%
-          tidyr::pivot_longer(cols = c('icu_start_date', 'icu_stop_date'),
-                              names_to = 'icu_event', values_to = 'icu_event_date') %>%
-          filter(!is.na(icu_event_date)) %>%
-          select(-icu_start, -icu_stop, -adt_date) %>%
-          tidyr::pivot_wider(id_cols = c('mrn', 'enc_id'),
-                             names_from = 'icu_event',
-                             values_from = 'icu_event_date',
-                             values_fn = list) %>%
-          tidyr::unnest(cols = c('icu_start_date', 'icu_stop_date'))
+          mutate(icu_episode = cumsum(icu_start)) %>%
+          group_by(mrn, enc_id, icu_episode) %>%
+          summarize(
+               icu_start_date = min(adt_date[icu_start]),
+               icu_stop_date  = max(adt_date[icu_stop]),
+               .groups = 'drop'
+          ) %>%
+          select(-icu_episode)
 
      return(adt_icu_simple)
 }
