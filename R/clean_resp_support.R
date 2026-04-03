@@ -58,7 +58,8 @@ clean_resp_support <- function(df_resp) {
                distinct() %>%
                pivot_wider(id_cols = c('enc_id', 'resp_meas_time'),
                            names_from = resp_meas_name,
-                           values_from = measure_value) %>%
+                           values_from = measure_value,
+                           values_fn = first) %>%
                # For some reason there are two cpap variables that almost always agree,
                # but occasionally don't. Keep the more frequently populated one, and if it doesn't have a value,
                # replace it with the other one.
