@@ -323,7 +323,7 @@ classify_resp_support <- function(df_resp_wide,
           arrange(enc_id, support_time_start) %>%
           mutate(support_change = current_support != lag(current_support, default = 'first'),
                  timefromlast = as.duration(support_time_start - lag(support_time_stop)),
-                 joingroup = if_else(timefromlast < hours(max_inter_ep_duration) & !support_change, TRUE, FALSE),
+                 joingroup = if_else(coalesce(timefromlast < hours(max_inter_ep_duration), FALSE) & !support_change, TRUE, FALSE),
                  support_episode = cumsum(support_change & !joingroup)) %>%
           ungroup() %>%
           group_by(enc_id, support_episode) %>%
