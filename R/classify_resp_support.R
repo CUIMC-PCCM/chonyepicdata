@@ -315,7 +315,6 @@ classify_resp_support <- function(df_resp_wide,
      # join them together. Only join if there are fewer than 4 hours between episodes
      df_resp_all <- df_resp_all %>%
           group_by(enc_id) %>%
-          arrange(enc_id, support_time_start) %>%
           mutate(support_change = current_support != lag(current_support, default = 'first'),
                  timefromlast = as.duration(support_time_start - lag(support_time_stop)),
                  joingroup = if_else(coalesce(timefromlast < hours(max_inter_ep_duration), FALSE) & !support_change, TRUE, FALSE),
@@ -345,7 +344,6 @@ classify_resp_support <- function(df_resp_wide,
      # Re-number support episodes
      df_resp_all <- df_resp_all %>%
           group_by(enc_id) %>%
-          arrange(enc_id, support_time_start) %>%
           mutate(support_episode = row_number()) %>%
           ungroup()
 
