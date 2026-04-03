@@ -1,5 +1,3 @@
-.libPaths(c('C:/Users/Andy/AppData/Local/R/win-library/4.4', .libPaths()))
-
 library(dplyr)
 library(readr)
 library(stringr)
@@ -9,12 +7,14 @@ library(janitor)
 library(zoo)
 library(purrr)
 
-repo <- "C:/Github/chonyepicdata"
+# ── Set these paths before running ────────────────────────────────────────────
+repo      <- "C:/Github/chonyepicdata"   # path to package root
+data_file <- ""                          # path to de-identified resp support file
+# ─────────────────────────────────────────────────────────────────────────────
+
 source(file.path(repo, "R/load_resp_support.R"))
 source(file.path(repo, "R/clean_resp_support.R"))
 source(file.path(repo, "R/classify_resp_support.R"))
-
-data_file <- "C:/Users/Andy/OneDrive - Columbia University Irving Medical Center/Research/data/early_mobilization/Report 8E - Mechanical Ventilation_deidentified.txt"
 
 # ── Step 1: load ───────────────────────────────────────────────────────────────
 cat("\n=== Step 1: load_resp_support ===\n")
@@ -40,12 +40,12 @@ if (length(list_cols) > 0) {
 # Check NA rates for key classification columns
 key_cols <- c("o2_deliv_method", "vent_mode", "vent_type", "vent_status",
               "map_vent", "etco2", "peep", "hfnc_status", "bipap_status")
-present <- intersect(key_cols, names(df_wide))
+present  <- intersect(key_cols, names(df_wide))
 na_rates <- sapply(df_wide[present], function(x) round(mean(is.na(x)) * 100, 1))
 cat("\nNA rates for key classification columns (%):\n")
 print(na_rates)
 
-# ── Step 3: classify ──────────────────────────────────────────────────────────
+# ── Step 3: classify ───────────────────────────────────────────────────────────
 cat("\n=== Step 3: classify_resp_support ===\n")
 df_episodes <- classify_resp_support(df_wide)
 cat(sprintf("Episodes: %d | Encounters: %d\n", nrow(df_episodes), n_distinct(df_episodes$enc_id)))
@@ -59,9 +59,9 @@ cat("\nEpisode duration summary (hours) by support level:\n")
 print(df_episodes %>%
      mutate(hours = as.numeric(timediff, "hours")) %>%
      group_by(current_support) %>%
-     summarise(n = n(), median_hrs = round(median(hours, na.rm=TRUE), 1),
-               p25 = round(quantile(hours, .25, na.rm=TRUE), 1),
-               p75 = round(quantile(hours, .75, na.rm=TRUE), 1),
+     summarise(n = n(), median_hrs = round(median(hours, na.rm = TRUE), 1),
+               p25 = round(quantile(hours, .25, na.rm = TRUE), 1),
+               p75 = round(quantile(hours, .75, na.rm = TRUE), 1),
                .groups = "drop") %>%
      arrange(desc(n)))
 

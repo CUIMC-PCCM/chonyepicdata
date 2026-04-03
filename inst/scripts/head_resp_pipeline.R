@@ -1,16 +1,17 @@
-.libPaths(c('C:/Users/Andy/AppData/Local/R/win-library/4.4', .libPaths()))
 suppressPackageStartupMessages({
      library(dplyr); library(readr); library(stringr)
      library(lubridate); library(tidyr); library(janitor)
      library(zoo); library(purrr)
 })
 
-repo <- 'C:/Github/chonyepicdata'
-source(file.path(repo, 'R/load_resp_support.R'))
-source(file.path(repo, 'R/clean_resp_support.R'))
-source(file.path(repo, 'R/classify_resp_support.R'))
+# ── Set these paths before running ────────────────────────────────────────────
+repo      <- "C:/Github/chonyepicdata"   # path to package root
+data_file <- ""                          # path to de-identified resp support file
+# ─────────────────────────────────────────────────────────────────────────────
 
-data_file <- 'C:/Users/Andy/OneDrive - Columbia University Irving Medical Center/Research/data/early_mobilization/Report 8E - Mechanical Ventilation_deidentified.txt'
+source(file.path(repo, "R/load_resp_support.R"))
+source(file.path(repo, "R/clean_resp_support.R"))
+source(file.path(repo, "R/classify_resp_support.R"))
 
 df_raw  <- load_resp_support(data_file)
 df_wide <- clean_resp_support(df_raw)
