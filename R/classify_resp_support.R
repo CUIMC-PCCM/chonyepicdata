@@ -117,7 +117,7 @@ classify_resp_support <- function(df_resp_wide,
                     # Mean airway pressure is almost always only recorded with
                     # invasive ventilation. We identified a rare exception with
                     # NIV PC mode so need to account for this.
-                    map_vent > 0 & !(vent_type == 'niv' | vent_mode == 'niv pc') ~ TRUE,
+                    map_vent > 0 & !coalesce(vent_type == 'niv' | vent_mode == 'niv pc', FALSE) ~ TRUE,
 
                     # ETCO2 plus any other vent-specific setting defines IMV
                     etco2 > 0 & (pip_set > 0 | o2_deliv_method == 'ventilator' | map_vent > 0 | peep > 0 | delta_p > 0 | itime_vent > 0) ~ TRUE,
