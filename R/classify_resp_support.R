@@ -208,7 +208,7 @@ classify_resp_support <- function(df_resp_wide,
                                                               hfov_active,
                                                               hfnc_active,
                                                               simple_o2_active,
-                                                              default = FALSE) ~ TRUE
+                                                              FALSE) ~ TRUE
                ),
 
                trach_active = case_when(
