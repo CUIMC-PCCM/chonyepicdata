@@ -41,3 +41,6 @@ data/*
 # Testing files
 tests/
 
+# Claude Code
+.claude/
+
