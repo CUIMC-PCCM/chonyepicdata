@@ -31,7 +31,7 @@ clean_vitals <- function(df_vitals) {
           pulse <- respirations  <-  NULL
 
      df_vitals_wide <- df_vitals %>%
-          select(-common_name, -units, -cust_list_map_value) %>%
+          select(-any_of(c("common_name", "units", "cust_list_map_value"))) %>%
           filter(flowsheet_name %in% c('pulse',
                                        'blood pressure',
                                        'respirations',
