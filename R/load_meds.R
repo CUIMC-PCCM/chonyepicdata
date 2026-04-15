@@ -55,6 +55,7 @@ load_meds <- function(med_filepath,
                       ordering_date = order_time,
                       order_med_id = order_id,
                       med_name = medication_name) %>%
+               mutate(across(any_of(c("mrn", "enc_id")), as.character)) %>%
                distinct(enc_id, med_name, dose, taken_time, .keep_all = TRUE)
      })
 

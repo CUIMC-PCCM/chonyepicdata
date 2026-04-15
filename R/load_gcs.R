@@ -53,7 +53,8 @@ load_gcs <- function(gcs_filepath,
                                delim = '|') %>%
                clean_names() %>%
                mutate(across(where(is.character), str_to_lower)) %>%
-               rename(enc_id = pat_enc_csn_id, gcs_time = recorded_time)
+               rename(enc_id = pat_enc_csn_id, gcs_time = recorded_time) %>%
+               mutate(across(any_of(c("mrn", "enc_id")), as.character))
 
      })
 

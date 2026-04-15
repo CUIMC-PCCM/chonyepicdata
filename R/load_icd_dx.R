@@ -57,7 +57,8 @@ load_icd_dx <- function(icd_dx_filepath,
                dx_date = as_date(dx_date)) %>%
 
           # Change names of relevant columns to fit the previosu schema
-          rename(enc_id = pat_enc_csn_id, icd10_code = icd_10_code)
+          rename(enc_id = pat_enc_csn_id, icd10_code = icd_10_code) %>%
+          mutate(across(any_of(c("mrn", "enc_id")), as.character))
 
      # Some rows inexplicably have 2 or more ICD10 codes. Split into new rows
      df_icd <- df_icd %>%

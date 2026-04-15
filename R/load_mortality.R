@@ -29,6 +29,7 @@ load_mortality <- function(mortality_filepath,
 
      df_mortality <- df_mortality %>%
           clean_names() %>%
+          mutate(across(any_of(c("mrn", "enc_id")), as.character)) %>%
           mutate(death_date = lubridate::ymd_hms(death_date, truncated = 3)) %>%
           filter(!is.na(death_date))
 

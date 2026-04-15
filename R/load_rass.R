@@ -86,7 +86,8 @@ load_rass <- function(rass_filepath,
                rass_id_col = !!col_mapping$rass_id_col,
                rass = !!col_mapping$rass,
                rass_time = !!col_mapping$rass_time
-          )
+          ) %>%
+          mutate(across(any_of(c("mrn", "enc_id")), as.character))
 
      # Check if all columns in col_mapping exist in the data
      missing_cols <- setdiff(names(col_mapping), colnames(df_rass))

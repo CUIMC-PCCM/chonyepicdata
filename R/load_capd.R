@@ -75,7 +75,8 @@ load_capd <- function(capd_filepath,
                component_name = !!col_mapping$component_name,
                component_value = !!col_mapping$component_value,
                capd_time = !!col_mapping$capd_time
-          )
+          ) %>%
+          mutate(across(any_of(c("mrn", "enc_id")), as.character))
 
      # Check if all columns in col_mapping exist in the data
      missing_cols <- setdiff(names(col_mapping), colnames(df_capd))

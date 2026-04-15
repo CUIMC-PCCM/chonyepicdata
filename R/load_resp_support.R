@@ -78,7 +78,8 @@ load_resp_support <- function(resp_filepath,
 
      # Rename columns to standardized internal names based on col_names mapping
      rename_vec <- setNames(col_names, names(col_names))
-     df_vent <- dplyr::rename(df_vent, any_of(rename_vec))
+     df_vent <- dplyr::rename(df_vent, any_of(rename_vec)) %>%
+          mutate(across(any_of(c("mrn", "enc_id")), as.character))
 
      # If particular vent settings or measurements were specified, filter to those
      if(!identical(resp_to_load, NA))
