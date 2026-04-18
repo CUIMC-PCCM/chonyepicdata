@@ -6,29 +6,63 @@
 \usage{
 load_vitals(
   vitals_filepath,
-  vitals_coltypes = list(col_character(), col_character(), col_character(),
-    col_character(), col_character(), col_character(), col_character(), col_character(),
-    col_datetime()),
+  col_map = list(enc_id = "pat_enc_csn_id", mrn = "mrn", flowsheet_group =
+    "flowsheet_group", common_name = "common_name", flowsheet_name = "flowsheet_name",
+    cust_list_map_value = "cust_list_map_value", meas_value = "meas_value", units =
+    "units", vital_time = "recorded_time"),
+  coltypes_vitals = NULL,
   vitals_to_load = NA,
+  filter_col = "flowsheet_name",
   max_load = Inf
 )
 }
 \arguments{
-\item{vitals_filepath}{Path to the medication data}
+\item{vitals_filepath}{Path to the vitals data}
 
-\item{vitals_coltypes}{A list of cols() specifications.
-Cols specifications are things like col_integer(), col_character(), and can be found
-within the \code{\link[readr]{cols}} documentation from the \code{readr} package.
-If this isn't working well you can send in col_guess().}
+\item{col_map}{A named list mapping output column names to input column names
+(after \code{clean_names()} normalization). The default expects the following
+input columns: \code{pat_enc_csn_id}, \code{mrn}, \code{flowsheet_group},
+\code{common_name}, \code{flowsheet_name}, \code{cust_list_map_value},
+\code{meas_value}, \code{units}, \code{recorded_time}.
+Override individual entries to remap specific columns.}
 
-\item{vitals_to_load}{Names of vital signs to load, in array format}
+\item{coltypes_vitals}{A \code{cols()} specification passed to \code{read_delim}.
+Defaults to \code{NULL} (auto-detect all columns). Can be used to enforce specific
+types when auto-detection fails.}
+
+\item{vitals_to_load}{Names of vital signs to load, as a character vector. Default
+\code{NA} loads all rows.}
+
+\item{filter_col}{The output column name to filter \code{vitals_to_load} against.
+Defaults to \code{"flowsheet_name"}. Change this if you have remapped
+\code{flowsheet_name} to a different output name in \code{col_map}.}
 
 \item{max_load}{Maximum number of rows}
 }
 \value{
-A data frame with vital signs (and other related flowsheet data) loaded.
+A data frame with all columns from the source file, with standard columns
+renamed:
+\itemize{
+\item \code{enc_id}: Encounter ID (character)
+\item \code{mrn}: Medical record number (character)
+\item \code{flowsheet_group}: Flowsheet group
+\item \code{common_name}: Common name
+\item \code{flowsheet_name}: Flowsheet row name
+\item \code{cust_list_map_value}: Custom list mapped value
+\item \code{meas_value}: Measured value
+\item \code{units}: Units
+\item \code{vital_time}: Datetime the vital was recorded
+}
+Additional columns present in the file are retained unchanged.
 }
 \description{
 Load a pipe-delimited .txt file containing vitals signs data into the EHR. Perform
 minimal cleaning.
+}
+\details{
+By default, the function expects Epic's standard column names. If your file uses
+different column names, pass a named list to \code{col_map} where each name is the
+desired output column and each value is the corresponding input column name (as it
+would appear after \code{janitor::clean_names()}, i.e. lowercase snake_case).
+Any columns not listed in \code{col_map} are kept as-is.
 }

@@ -6,32 +6,50 @@
 \usage{
 load_encounters(
   encounter_filepath,
-  coltypes_enc = list(col_character(), col_character(), col_skip(), col_datetime(),
-    col_character(), col_skip(), col_character(), col_skip(), col_datetime(),
-    col_datetime()),
+  col_map = list(mrn = "mrn", enc_id = "pat_enc_csn_id", dob = "birth_date", sex = "sex",
+    ethnicity = "ethnicity", hospital_admission_date = "hosp_admsn_time",
+    hospital_discharge_date = "hosp_disch_time"),
+  coltypes_enc = NULL,
   max_load = Inf
 )
 }
 \arguments{
 \item{encounter_filepath}{A complete file path to the encounter data file.}
 
-\item{coltypes_enc}{A list of cols() specifications.
-Cols specifications are things like col_integer(), col_character(), and can be found within the 'readr' package documentation.}
+\item{col_map}{A named list mapping output column names to input column names
+(after \code{clean_names()} normalization). The default expects the following
+input columns: \code{mrn}, \code{pat_enc_csn_id}, \code{birth_date}, \code{sex},
+\code{ethnicity}, \code{hosp_admsn_time}, \code{hosp_disch_time}.
+Override individual entries to remap specific columns.}
+
+\item{coltypes_enc}{A \code{cols()} specification passed to \code{read_delim}.
+Defaults to \code{NULL} (auto-detect all columns). Can be used to enforce specific
+types when auto-detection fails.}
 
 \item{max_load}{A number, the maximum number of rows to load. The default is infinity.}
 }
 \value{
-A data frame with reformatted and cleaned encounter-level information:
+A data frame with all columns from the source file, with standard columns
+renamed and transformed:
 \itemize{
-\item \code{MRN}: Medical record number
+\item \code{mrn}: Medical record number
 \item \code{enc_id}: Encounter ID
-\item \code{dob}: Date of birth
+\item \code{dob}: Date of birth (Date)
+\item \code{sex}: Sex (factor: male/female/other)
 \item \code{hospital_admission_date}: Hospital admission datetime
 \item \code{hospital_discharge_date}: Hospital discharge datetime
 }
+Additional columns present in the file are retained unchanged.
 }
 \description{
 Load inpatient hospital encounters from a .txt file from Epic-era data.
-The text file should be pipe-delimited (delimter is '|' without the quotes).
+The text file should be pipe-delimited (delimiter is '|' without the quotes).
 This just contains basic demographic information to be used with other relational tables.
+}
+\details{
+By default, the function expects Epic's standard column names. If your file uses
+different column names, pass a named list to \code{col_map} where each name is the
+desired output column and each value is the corresponding input column name (as it
+would appear after \code{janitor::clean_names()}, i.e. lowercase snake_case).
+Any columns not listed in \code{col_map} are kept as-is.
 }

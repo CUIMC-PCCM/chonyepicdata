@@ -6,26 +6,57 @@
 \usage{
 load_labs(
   labs_filepath,
-  labs_coltypes = list(col_skip(), col_skip(), col_skip(), col_character(), col_skip(),
-    col_datetime(), col_skip(), col_character(), col_character(), col_character(),
-    col_character(), col_skip()),
+  col_map = list(enc_id = "pat_enc_csn_id", specimen_taken_time = "specimen_taken_time",
+    description = "description", common_name = "common_name", result_value =
+    "result_value", reference_unit = "reference_unit"),
+  drop_cols = c("order_proc_id", "order_date", "line", "order_time", "result_time",
+    "lab_status"),
+  coltypes_labs = NULL,
   max_load = Inf
 )
 }
 \arguments{
 \item{labs_filepath}{Path to the lab data}
 
-\item{labs_coltypes}{A list of cols() specifications.
-Cols specifications are things like col_integer(), col_character(), and can be found
-within the \code{\link[readr]{cols}} documentation from the \code{readr} package.
-If this isn't working well you can send in col_guess().}
+\item{col_map}{A named list mapping output column names to input column names
+(after \code{clean_names()} normalization). The default expects the following
+input columns: \code{pat_enc_csn_id}, \code{specimen_taken_time},
+\code{description}, \code{common_name}, \code{result_value}, \code{reference_unit}.
+Override individual entries to remap specific columns.}
+
+\item{drop_cols}{A character vector of column names (after \code{clean_names()}
+normalization) to drop from the output. Defaults to columns that are not clinically
+useful in downstream analysis: \code{order_proc_id}, \code{order_date}, \code{line},
+\code{order_time}, \code{result_time}, \code{lab_status}. Set to \code{NULL} to
+retain all columns.}
+
+\item{coltypes_labs}{A \code{cols()} specification passed to \code{read_delim}.
+Defaults to \code{NULL} (auto-detect all columns). Can be used to enforce specific
+types when auto-detection fails.}
 
 \item{max_load}{The maximum number of rows to load. The default is \code{Inf}}
 }
 \value{
-A data frame with raw laboratory data and timestamps.
+A data frame with all columns from the source file, with standard columns
+renamed and transformed:
+\itemize{
+\item \code{enc_id}: Encounter ID (character)
+\item \code{specimen_taken_time}: Specimen collection datetime
+\item \code{description}: Lab order description
+\item \code{common_name}: Common lab name
+\item \code{result_value}: Lab result value
+\item \code{reference_unit}: Unit of measure
+}
+Additional columns present in the file are retained unchanged.
 }
 \description{
 Load laboratory data from the Epic EHR, and perform some limited cleaning. File should be
 a .txt in pipe-delimited ('|') format.
+}
+\details{
+By default, the function expects Epic's standard column names. If your file uses
+different column names, pass a named list to \code{col_map} where each name is the
+desired output column and each value is the corresponding input column name (as it
+would appear after \code{janitor::clean_names()}, i.e. lowercase snake_case).
+Any columns not listed in \code{col_map} are kept as-is.
 }

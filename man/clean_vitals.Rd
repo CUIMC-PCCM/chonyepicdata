@@ -4,10 +4,17 @@
 \alias{clean_vitals}
 \title{clean_vitals}
 \usage{
-clean_vitals(df_vitals)
+clean_vitals(df_vitals, name_map = NULL)
 }
 \arguments{
 \item{df_vitals}{A long-form data frame of vitals.}
+
+\item{name_map}{An optional named character vector for recoding \code{flowsheet_name}
+values before filtering. Use this when your file uses different vital sign labels
+than the Epic defaults. Names should be the values present in your file; values
+should be the corresponding standard labels. For example:
+\code{c("bp" = "blood pressure", "resp" = "respirations", "spo2" = "pulse oximetry")}.
+Default \code{NULL} applies no recoding.}
 }
 \value{
 A data frame in wide format with concurrently-recorded vital signs
