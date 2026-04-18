@@ -79,8 +79,8 @@ clean_vitals <- function(df_vitals,
      # Add in MAP if it was not calculated
      df_vitals_wide <- df_vitals_wide %>%
           mutate(
-               map_ni  = if ("map_ni"  %in% names(.)) round(dplyr::coalesce(map_ni,  (1/3*sbp_ni  + 2/3*dbp_ni)))  else NA_real_,
-               map_art = if ("map_art" %in% names(.)) round(dplyr::coalesce(map_art, (1/3*sbp_art + 2/3*dbp_art))) else NA_real_
+               map_ni  = if ("map_ni"  %in% names(.)) round(dplyr::coalesce(map_ni,  (1/3*sbp_ni  + 2/3*dbp_ni)))  else round(1/3*sbp_ni  + 2/3*dbp_ni),
+               map_art = if ("map_art" %in% names(.)) round(dplyr::coalesce(map_art, (1/3*sbp_art + 2/3*dbp_art))) else round(1/3*sbp_art + 2/3*dbp_art)
           )
 
      return(df_vitals_wide)

@@ -10,9 +10,10 @@ repo <- "C:/Github/chonyepicdata"   # path to package root
 
 # Optional: set real data file paths to run checks against actual data.
 # Leave as "" to skip the real-data section entirely.
-real_enc_file    <- ""   # pipe-delimited encounter file
-real_labs_file   <- ""   # pipe-delimited labs file
-real_vitals_file <- ""   # pipe-delimited vitals file
+data_path <- paste0(Sys.getenv('onedrive'), '/Research/data/early_mobilization/')
+real_enc_file    <- paste0(data_path, "Report 1A - Hospital Encounters.txt")   # pipe-delimited encounter file
+real_labs_file   <- paste0(data_path, "Report 12 - Labs.txt")   # pipe-delimited labs file
+real_vitals_file <- paste0(data_path, "Report 8A - Vitals.txt")   # pipe-delimited vitals file
 # ─────────────────────────────────────────────────────────────────────────────
 
 source(file.path(repo, "R/load_encounters.R"))
@@ -354,7 +355,14 @@ if (all(nchar(real_files) == 0)) {
      # ── load_vitals + clean_vitals ────────────────────────────────────────────
      if (nchar(real_vitals_file) > 0) {
           cat("\n-- load_vitals --\n")
-          vit_real <- load_vitals(real_vitals_file)
+          vit_real <- load_vitals(real_vitals_file,
+                                  col_map = list(
+                                       enc_id         = "pat_enc_csn_id",
+                                       mrn            = "mrn",
+                                       flowsheet_name = "display_name",
+                                       meas_value     = "measure_value",
+                                       vital_time     = "recorded_time"
+                                  ))
 
           cat(sprintf("  Rows: %d | Encounters: %d\n",
                       nrow(vit_real), n_distinct(vit_real$enc_id)))
