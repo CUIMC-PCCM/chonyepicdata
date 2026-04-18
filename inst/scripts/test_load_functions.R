@@ -10,34 +10,31 @@ repo <- "C:/Github/chonyepicdata"   # path to package root
 
 # Optional: set real data file paths to run checks against actual data.
 # Leave as "" to skip the real-data section entirely.
-data_path <- paste0(Sys.getenv('onedrive'), '/Research/data/early_mobilization/')
-real_enc_file    <- paste0(data_path, "Report 1A - Hospital Encounters.txt")   # pipe-delimited encounter file
-real_labs_file   <- paste0(data_path, "Report 12 - Labs.txt")   # pipe-delimited labs file
-real_vitals_file <- paste0(data_path, "Report 8A - Vitals.txt")   # pipe-delimited vitals file
+data_path <- paste0(Sys.getenv('onedrive'), '/Research/data/delirium_sedation/post_epic_2023_11_16/')
+real_enc_file    <- ''   # pipe-delimited encounter file
+real_labs_file   <- ''   # pipe-delimited labs file
+real_vitals_file <- ''   # pipe-delimited vitals file
 
 # Optional: custom column mappings for real data files.
 # Set to NULL to use function defaults.
-real_enc_col_map    <- NULL
+# example_map <-
+#      list(
+#           mrn                     = "mrn",
+#           enc_id                  = "pat_enc_csn_id",
+#           dob                     = "birth_date",
+#           sex                     = "sex",
+#           ethnicity               = "ethnicity",
+#           hospital_admission_date = "admission_date",
+#           hospital_discharge_date = "discharge_date"
+#      )
+real_enc_col_map <- NULL
 real_labs_col_map   <- NULL
-real_vitals_col_map <- list(
-     enc_id         = "pat_enc_csn_id",
-     mrn            = "mrn",
-     flowsheet_name = "display_name",
-     meas_value     = "measure_value",
-     vital_time     = "recorded_time"
-)
+real_vitals_col_map <- NULL
 
 # Optional: name_map for clean_vitals() to recode flowsheet labels.
 # Set to NULL to use Epic standard labels.
-real_vitals_name_map <- c(
-     "bp"                       = "blood pressure",
-     "resp"                     = "respirations",
-     "spo2"                     = "pulse oximetry",
-     "map (mmhg)"               = "r fs map",
-     "arterial line map (mmhg)" = "r fs map a-line",
-     "arterial line bp"         = "r fs arterial line blood pressure",
-     "cvp (mean)"               = "r fs device cvp mean"
-)
+real_vitals_name_map <- NULL
+
 # ─────────────────────────────────────────────────────────────────────────────
 
 source(file.path(repo, "R/load_encounters.R"))
