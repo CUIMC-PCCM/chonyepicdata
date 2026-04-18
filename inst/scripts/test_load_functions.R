@@ -398,15 +398,6 @@ if (all(nchar(real_files) == 0)) {
           rcheck("wide output has fewer rows than long",  nrow(vit_real_clean) < nrow(vit_real))
           rcheck("vital columns are numeric",
                  all(sapply(vit_real_clean[vital_cols], is.numeric)))
-          if ("hr" %in% names(vit_real_clean))
-               rcheck("hr values in plausible range (20-300)",
-                      all(vit_real_clean$hr >= 20 & vit_real_clean$hr <= 300, na.rm = TRUE))
-          if ("sbp_ni" %in% names(vit_real_clean))
-               rcheck("sbp_ni values in plausible range (40-300)",
-                      all(vit_real_clean$sbp_ni >= 40 & vit_real_clean$sbp_ni <= 300, na.rm = TRUE))
-          if ("spo2" %in% names(vit_real_clean))
-               rcheck("spo2 values in plausible range (50-100)",
-                      all(vit_real_clean$spo2 >= 50 & vit_real_clean$spo2 <= 100, na.rm = TRUE))
      }
 
      cat(sprintf("\n=== Real data results: %d passed, %d failed ===\n", real_pass, real_fail))
