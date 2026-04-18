@@ -14,6 +14,30 @@ data_path <- paste0(Sys.getenv('onedrive'), '/Research/data/early_mobilization/'
 real_enc_file    <- paste0(data_path, "Report 1A - Hospital Encounters.txt")   # pipe-delimited encounter file
 real_labs_file   <- paste0(data_path, "Report 12 - Labs.txt")   # pipe-delimited labs file
 real_vitals_file <- paste0(data_path, "Report 8A - Vitals.txt")   # pipe-delimited vitals file
+
+# Optional: custom column mappings for real data files.
+# Set to NULL to use function defaults.
+real_enc_col_map    <- NULL
+real_labs_col_map   <- NULL
+real_vitals_col_map <- list(
+     enc_id         = "pat_enc_csn_id",
+     mrn            = "mrn",
+     flowsheet_name = "display_name",
+     meas_value     = "measure_value",
+     vital_time     = "recorded_time"
+)
+
+# Optional: name_map for clean_vitals() to recode flowsheet labels.
+# Set to NULL to use Epic standard labels.
+real_vitals_name_map <- c(
+     "bp"                       = "blood pressure",
+     "resp"                     = "respirations",
+     "spo2"                     = "pulse oximetry",
+     "map (mmhg)"               = "r fs map",
+     "arterial line map (mmhg)" = "r fs map a-line",
+     "arterial line bp"         = "r fs arterial line blood pressure",
+     "cvp (mean)"               = "r fs device cvp mean"
+)
 # ─────────────────────────────────────────────────────────────────────────────
 
 source(file.path(repo, "R/load_encounters.R"))
@@ -292,7 +316,11 @@ if (all(nchar(real_files) == 0)) {
      # ── load_encounters ──────────────────────────────────────────────────────
      if (nchar(real_enc_file) > 0) {
           cat("\n-- load_encounters --\n")
-          enc_real <- load_encounters(real_enc_file)
+          enc_real <- if (is.null(real_enc_col_map)) {
+               load_encounters(real_enc_file)
+          } else {
+               load_encounters(real_enc_file, col_map = real_enc_col_map)
+          }
 
           cat(sprintf("  Rows: %d | Encounters: %d | Patients: %d\n",
                       nrow(enc_real), n_distinct(enc_real$enc_id), n_distinct(enc_real$mrn)))
@@ -328,7 +356,11 @@ if (all(nchar(real_files) == 0)) {
      # ── load_labs ────────────────────────────────────────────────────────────
      if (nchar(real_labs_file) > 0) {
           cat("\n-- load_labs --\n")
-          labs_real <- load_labs(real_labs_file)
+          labs_real <- if (is.null(real_labs_col_map)) {
+               load_labs(real_labs_file)
+          } else {
+               load_labs(real_labs_file, col_map = real_labs_col_map)
+          }
 
           cat(sprintf("  Rows: %d | Encounters: %d\n",
                       nrow(labs_real), n_distinct(labs_real$enc_id)))
@@ -355,14 +387,11 @@ if (all(nchar(real_files) == 0)) {
      # ── load_vitals + clean_vitals ────────────────────────────────────────────
      if (nchar(real_vitals_file) > 0) {
           cat("\n-- load_vitals --\n")
-          vit_real <- load_vitals(real_vitals_file,
-                                  col_map = list(
-                                       enc_id         = "pat_enc_csn_id",
-                                       mrn            = "mrn",
-                                       flowsheet_name = "display_name",
-                                       meas_value     = "measure_value",
-                                       vital_time     = "recorded_time"
-                                  ))
+          vit_real <- if (is.null(real_vitals_col_map)) {
+               load_vitals(real_vitals_file)
+          } else {
+               load_vitals(real_vitals_file, col_map = real_vitals_col_map)
+          }
 
           cat(sprintf("  Rows: %d | Encounters: %d\n",
                       nrow(vit_real), n_distinct(vit_real$enc_id)))
@@ -378,15 +407,11 @@ if (all(nchar(real_files) == 0)) {
           rcheck("at least 1 row loaded", nrow(vit_real) > 0)
 
           cat("\n-- clean_vitals --\n")
-          vit_real_clean <- clean_vitals(vit_real, name_map = c(
-               "bp"                       = "blood pressure",
-               "resp"                     = "respirations",
-               "spo2"                     = "pulse oximetry",
-               "map (mmhg)"               = "r fs map",
-               "arterial line map (mmhg)" = "r fs map a-line",
-               "arterial line bp"         = "r fs arterial line blood pressure",
-               "cvp (mean)"               = "r fs device cvp mean"
-          ))
+          vit_real_clean <- if (is.null(real_vitals_name_map)) {
+               clean_vitals(vit_real)
+          } else {
+               clean_vitals(vit_real, name_map = real_vitals_name_map)
+          }
 
           cat(sprintf("  Wide rows: %d | Encounters: %d\n",
                       nrow(vit_real_clean), n_distinct(vit_real_clean$enc_id)))
