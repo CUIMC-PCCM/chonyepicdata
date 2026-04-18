@@ -6,11 +6,18 @@
 #' taking up the same row.
 #'
 #' @param df_vitals A long-form data frame of vitals.
+#' @param name_map An optional named character vector for recoding \code{flowsheet_name}
+#'   values before filtering. Use this when your file uses different vital sign labels
+#'   than the Epic defaults. Names should be the values present in your file; values
+#'   should be the corresponding standard labels. For example:
+#'   \code{c("bp" = "blood pressure", "resp" = "respirations", "spo2" = "pulse oximetry")}.
+#'   Default \code{NULL} applies no recoding.
 #'
 #' @return A data frame in wide format with concurrently-recorded vital signs
 #' @export
 #'
-clean_vitals <- function(df_vitals) {
+clean_vitals <- function(df_vitals,
+                         name_map = NULL) {
 
      # *****************************************************************************
      # Initialize variables --------------------------------------------------------
@@ -23,15 +30,20 @@ clean_vitals <- function(df_vitals) {
      # Function --------------------------------------------------------------------
      # *****************************************************************************
 
-
      # Required to avoid warnings when building package
      common_name <- cust_list_map_value <- flowsheet_name <- meas_value <-
           blood_pressure <- r_fs_arterial_line_blood_pressure <- r_fs_map <-
           r_fs_map_a_line <- r_fs_device_cvp_mean <- pulse_oximetry <-
           pulse <- respirations  <-  NULL
 
+     # Recode flowsheet_name values if a name_map is provided
+     if (!is.null(name_map)) {
+          df_vitals <- df_vitals %>%
+               mutate(flowsheet_name = dplyr::recode(flowsheet_name, !!!name_map))
+     }
+
      df_vitals_wide <- df_vitals %>%
-          select(-common_name, -units, -cust_list_map_value) %>%
+          select(-any_of(c("common_name", "units", "cust_list_map_value"))) %>%
           filter(flowsheet_name %in% c('pulse',
                                        'blood pressure',
                                        'respirations',
@@ -44,22 +56,32 @@ clean_vitals <- function(df_vitals) {
           pivot_wider(id_cols = c('enc_id', 'mrn', 'vital_time'),
                       names_from = flowsheet_name,
                       values_from = meas_value) %>%
-          clean_names() %>%
+          clean_names()
+
+     # Ensure BP columns exist before splitting — may be absent if no BP data
+     for (col in c("blood_pressure", "r_fs_arterial_line_blood_pressure")) {
+          if (!col %in% names(df_vitals_wide)) df_vitals_wide[[col]] <- NA_character_
+     }
+
+     df_vitals_wide <- df_vitals_wide %>%
           separate_wider_delim(cols = blood_pressure, names = c('sbp_ni', 'dbp_ni'), delim = '/', too_few = 'align_start') %>%
           separate_wider_delim(cols = r_fs_arterial_line_blood_pressure, names = c('sbp_art', 'dbp_art'), delim = '/', too_few = 'align_start') %>%
-          rename(map_ni = r_fs_map,
-                 map_art=r_fs_map_a_line,
-                 cvp = r_fs_device_cvp_mean,
-                 spo2 = pulse_oximetry,
-                 hr = pulse,
-                 resp = respirations) %>%
+          rename(any_of(c(map_ni = 'r_fs_map',
+                          map_art = 'r_fs_map_a_line',
+                          cvp = 'r_fs_device_cvp_mean',
+                          spo2 = 'pulse_oximetry',
+                          hr = 'pulse',
+                          resp = 'respirations'))) %>%
           mutate(across(c(4:dplyr::last_col()), as.numeric)) %>%
-          select(mrn, enc_id, vital_time, hr, sbp_ni, dbp_ni, map_ni, sbp_art, dbp_art, map_art, resp, spo2, cvp)
+          select(any_of(c('mrn', 'enc_id', 'vital_time', 'hr', 'sbp_ni', 'dbp_ni',
+                          'map_ni', 'sbp_art', 'dbp_art', 'map_art', 'resp', 'spo2', 'cvp')))
 
      # Add in MAP if it was not calculated
      df_vitals_wide <- df_vitals_wide %>%
-          mutate(map_ni = round(dplyr::coalesce(map_ni, (1/3*sbp_ni + 2/3*dbp_ni))),
-                 map_art = round(dplyr::coalesce(map_art, (1/3*sbp_art + 2/3*dbp_art))))
+          mutate(
+               map_ni  = if ("map_ni"  %in% names(.)) round(dplyr::coalesce(map_ni,  (1/3*sbp_ni  + 2/3*dbp_ni)))  else NA_real_,
+               map_art = if ("map_art" %in% names(.)) round(dplyr::coalesce(map_art, (1/3*sbp_art + 2/3*dbp_art))) else NA_real_
+          )
 
      return(df_vitals_wide)
 }
