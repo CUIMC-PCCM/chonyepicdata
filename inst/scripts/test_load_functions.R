@@ -378,7 +378,15 @@ if (all(nchar(real_files) == 0)) {
           rcheck("at least 1 row loaded", nrow(vit_real) > 0)
 
           cat("\n-- clean_vitals --\n")
-          vit_real_clean <- clean_vitals(vit_real)
+          vit_real_clean <- clean_vitals(vit_real, name_map = c(
+               "bp"                       = "blood pressure",
+               "resp"                     = "respirations",
+               "spo2"                     = "pulse oximetry",
+               "map (mmhg)"               = "r fs map",
+               "arterial line map (mmhg)" = "r fs map a-line",
+               "arterial line bp"         = "r fs arterial line blood pressure",
+               "cvp (mean)"               = "r fs device cvp mean"
+          ))
 
           cat(sprintf("  Wide rows: %d | Encounters: %d\n",
                       nrow(vit_real_clean), n_distinct(vit_real_clean$enc_id)))
