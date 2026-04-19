@@ -116,6 +116,9 @@ assemble_psofa_data <- function(labs,
      if (is.character(labs))      labs      <- load_labs(labs)
      if (is.character(meds))      meds      <- load_meds(meds)
 
+     if (is.character(labs$specimen_taken_time))
+          labs <- labs %>% mutate(specimen_taken_time = lubridate::ymd_hms(specimen_taken_time, quiet = TRUE))
+
      if (is.character(vitals)) {
           vitals <- load_vitals(vitals)
      }
@@ -136,7 +139,7 @@ assemble_psofa_data <- function(labs,
           ) %>%
                rename(enc_id        = !!str_to_lower(fio2_spo2_key_col),
                       recorded_time = !!str_to_lower(fio2_spo2_time_col)) %>%
-               mutate(recorded_time = lubridate::ymd_hms(recorded_time),
+               mutate(recorded_time = lubridate::as_datetime(recorded_time),
                       fio2          = as.numeric(fio2),
                       spo2          = as.numeric(spo2))
      }
@@ -204,6 +207,13 @@ assemble_psofa_data <- function(labs,
      avail_renames  <- psofa_labrenames[available_idx]
      message('pSOFA labs matched: ', paste(avail_renames, collapse = ', '),
              if (any(!available_idx)) paste0(' | NOT matched: ', paste(psofa_labnames[!available_idx], collapse = ', ')))
+     if (any(!available_idx)) {
+          all_names <- unique(labs_filtered$common_name)
+          for (kw in c('creatinin', 'platelet', 'bili', 'po2', 'oxygen')) {
+               hits <- all_names[grepl(kw, all_names, ignore.case = TRUE)]
+               if (length(hits)) message('  Candidates [', kw, ']: ', paste(hits, collapse = ' | '))
+          }
+     }
 
      df_labs_psofa <- labs_filtered %>%
           get_labs_by_type(labnames = avail_names, labvarnames = avail_renames) %>%
@@ -227,12 +237,18 @@ assemble_psofa_data <- function(labs,
      df_tbili      <- lab_with_fallback(df_labs_psofa, 'tbili',      max)
 
      # PaO2: window-filtered time-series only (needs contemporaneous FiO2 for P/F)
-     df_pao2_ts <- df_labs_psofa %>%
-          select(enc_id, specimen_taken_time, pao2) %>%
-          filter(!is.na(pao2)) %>%
-          inner_join(tw, by = 'enc_id') %>%
-          filter(specimen_taken_time >= t_start & specimen_taken_time <= t_end) %>%
-          select(enc_id, specimen_taken_time, pao2)
+     if ('pao2' %in% names(df_labs_psofa)) {
+          df_pao2_ts <- df_labs_psofa %>%
+               select(enc_id, specimen_taken_time, dplyr::all_of('pao2')) %>%
+               filter(!is.na(.data[['pao2']])) %>%
+               inner_join(tw, by = 'enc_id') %>%
+               filter(specimen_taken_time >= t_start & specimen_taken_time <= t_end) %>%
+               select(enc_id, specimen_taken_time, dplyr::all_of('pao2'))
+     } else {
+          df_pao2_ts <- tibble::tibble(enc_id = character(),
+                                       specimen_taken_time = lubridate::POSIXct(),
+                                       pao2 = numeric())
+     }
 
      # *****************************************************************************
      # FiO2 / SpO2: clean and filter to time window --------------------------------
