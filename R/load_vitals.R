@@ -77,7 +77,7 @@ load_vitals <- function(vitals_filepath,
      rename_vec <- setNames(unlist(col_map), names(col_map))
      df_vitals <- df_vitals %>%
           rename(any_of(rename_vec)) %>%
-          mutate(across(any_of(c("enc_id", "mrn")), as.character))
+          mutate(across(any_of(c("enc_id", "mrn")), ~ trimws(as.character(.x))))
 
      # If a particular vital sign was specified, then just filter to that one
      if(!is.na(vitals_to_load))

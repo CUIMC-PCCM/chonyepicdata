@@ -71,7 +71,7 @@ load_labs <- function(labs_filepath,
      rename_vec <- setNames(unlist(col_map), names(col_map))
      df_labs <- df_labs %>%
           rename(any_of(rename_vec)) %>%
-          mutate(across(any_of("enc_id"), as.character)) %>%
+          mutate(across(any_of("enc_id"), ~ trimws(as.character(.x)))) %>%
           select(-any_of(drop_cols))
 
      return(df_labs)

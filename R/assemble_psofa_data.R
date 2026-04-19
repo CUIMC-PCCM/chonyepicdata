@@ -212,9 +212,21 @@ assemble_psofa_data <- function(labs,
           ))
      n_lab_overlap <- sum(tw$enc_id %in% unique(labs$enc_id))
      if (n_lab_overlap == 0) {
+          lab_ids <- unique(labs$enc_id)
+          tw_ids  <- tw$enc_id
           message('WARNING: 0 enc_id matches between labs and time_window.')
-          message('  Sample lab enc_ids:  ', paste(head(unique(labs$enc_id)), collapse = ', '))
-          message('  Sample TW  enc_ids:  ', paste(head(tw$enc_id),          collapse = ', '))
+          message('  Lab  enc_id: n=', length(lab_ids),
+                  '  nchar=', paste(sort(unique(nchar(head(lab_ids)))), collapse='/'),
+                  '  looks_numeric=', all(grepl('^[0-9.e+E-]+$', head(lab_ids))))
+          message('  TW   enc_id: n=', length(tw_ids),
+                  '  nchar=', paste(sort(unique(nchar(head(tw_ids)))),  collapse='/'),
+                  '  looks_numeric=', all(grepl('^[0-9.e+E-]+$', head(tw_ids))))
+          # Check if trimming whitespace or dropping decimal resolves the mismatch
+          lab_trimmed <- trimws(lab_ids)
+          lab_intstr  <- sub('\\.0+$', '', lab_ids)
+          tw_intstr   <- sub('\\.0+$', '', tw_ids)
+          message('  After trimws:       ', sum(tw_ids  %in% lab_trimmed), ' matches')
+          message('  After drop .0:      ', sum(tw_intstr %in% lab_intstr), ' matches')
      }
      available_idx  <- psofa_labnames %in% unique(labs_filtered$common_name)
      avail_names    <- psofa_labnames[available_idx]
@@ -272,7 +284,7 @@ assemble_psofa_data <- function(labs,
           filter(enc_id %in% tw$enc_id) %>%
           mutate(across(c(fio2, spo2), as.numeric)) %>%
           filter(fio2 >= 21 & fio2 <= 100 | is.na(fio2)) %>%
-          filter(spo2 >= 0  & spo2 <= 97  | is.na(spo2)) %>%
+          filter(spo2 > 0   & spo2 <= 97  | is.na(spo2)) %>%
           filter(!(is.na(fio2) & is.na(spo2))) %>%
           inner_join(tw, by = 'enc_id') %>%
           filter(recorded_time >= t_start & recorded_time <= t_end) %>%

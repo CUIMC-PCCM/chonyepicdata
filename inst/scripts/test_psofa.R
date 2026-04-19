@@ -9,11 +9,15 @@ library(janitor)
 repo <- "C:/Github/chonyepicdata"   # path to package root
 
 # Paths to de-identified Epic export files. Leave as "" to skip real-data checks.
-real_labs_file      <- ""
-real_vitals_file    <- ""
-real_meds_file      <- ""
-real_fio2_spo2_file <- ""   # IMV/flowsheet file containing FiO2 (%) and SpO2 rows
-real_resp_file      <- ""   # respiratory support flowsheet file
+data_path <- paste0(Sys.getenv('onedrive'), '/Research/data/early_mobilization/')
+real_labs_file      <- paste0(data_path, 'Report 12 - Labs.txt')
+real_vitals_file    <- paste0(data_path, 'Report 8A - Vitals.txt')
+real_meds_file      <- paste0(data_path, 'Report 6 - Medications.txt')
+real_fio2_spo2_file <- paste0(data_path, 'Report 8E - Mechanical Ventilation.txt')   # IMV/flowsheet file containing FiO2 (%) and SpO2 rows
+real_resp_file      <- paste0(data_path, 'Report 8E - Mechanical Ventilation.txt')   # respiratory support flowsheet file
+
+# Max encounters to load for real data testing, set to Inf otherwise
+max_encounters <- 50
 
 # Time window: supply a file or object with enc_id + ref_time (PICU admission).
 # Set to "" or NULL to skip the real-data section.
@@ -69,6 +73,20 @@ if (skip_real) {
 
      cat("\n=== Step 1: classify_resp_support ===\n")
      df_resp_raw   <- load_resp_support(real_resp_file)
+
+     # Limit real encounters if this was marked
+     if(is.numeric(max_encounters)) {
+          if(nrow(distinct(df_resp_raw, enc_id)) >= max_encounters) {
+               df_resp_raw <- df_resp_raw %>%
+                    mutate(distinct_id = cur_group_id()) %>%
+                    ungroup() %>%
+                    filter(distinct_id < max_encounters) %>%
+                    select(-distinct_id)
+
+               enc_to_use <- pull(distinct(df_resp_raw, enc_id), enc_id)
+          }
+     }
+
      df_resp_wide  <- clean_resp_support(df_resp_raw)
      df_resp_epi   <- classify_resp_support(df_resp_wide)
      cat(sprintf("Respiratory episodes: %d | Encounters: %d\n",
@@ -165,8 +183,8 @@ if (skip_real) {
      }
 
      # Sanity checks on scored output
-     check("psofa is non-negative",
-           all(!is.na(df_scored$psofa) | all(is.na(df_scored$psofa))))
+     check("psofa non-negative where present",
+           all(is.na(df_scored$psofa) | df_scored$psofa >= 0))
      check("psofa in range [0, 24]",
            all(is.na(df_scored$psofa) | (df_scored$psofa >= 0 & df_scored$psofa <= 24)))
      check("psofa equals sum of components",
