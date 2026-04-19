@@ -79,7 +79,7 @@ assemble_psofa_data <- function(labs,
           result <- med <- max_dose <- current_support <- support_time_start <-
           support_time_stop <- resp_support <- platelets <- tbili1 <- tbili2 <- tbili <-
           creatinine <- epi <- norepi <- dopa <- dobut <- dob_col <- agem_val <-
-          x <- y <- overlaps <- map_lb <- NULL
+          x <- y <- overlaps <- map_lb <- val_lb <- in_window <- NULL
 
      # *****************************************************************************
      # Input validation ------------------------------------------------------------
@@ -164,27 +164,29 @@ assemble_psofa_data <- function(labs,
      # Helper: worst value in window, falling back to most recent pre-window value.
      # If no value exists at all, returns NA (calc_psofa treats NA as normal/0).
      lab_with_fallback <- function(df, var, worst_fn) {
-          v      <- rlang::sym(var)
-          v_lb   <- rlang::sym(paste0(var, '_lb'))
           in_win <- df %>%
                inner_join(tw, by = 'enc_id') %>%
-               filter(specimen_taken_time >= t_start & specimen_taken_time <= t_end & !is.na(!!v)) %>%
+               filter(specimen_taken_time >= t_start, specimen_taken_time <= t_end,
+                      !is.na(.data[[var]])) %>%
                group_by(enc_id) %>%
-               summarize(!!v := worst_fn(!!v, na.rm = TRUE), .groups = 'drop')
+               summarize(across(dplyr::all_of(var), ~ worst_fn(.x, na.rm = TRUE)),
+                         .groups = 'drop')
           lookback <- df %>%
                inner_join(tw, by = 'enc_id') %>%
-               filter(specimen_taken_time < t_start & !is.na(!!v)) %>%
+               filter(specimen_taken_time < t_start, !is.na(.data[[var]])) %>%
                group_by(enc_id) %>%
                dplyr::slice_max(specimen_taken_time, n = 1, with_ties = FALSE) %>%
                ungroup() %>%
-               select(enc_id, !!v) %>%
-               rename(!!v_lb := !!v)
-          tw %>%
+               select(enc_id, dplyr::all_of(setNames(var, 'val_lb')))
+          out <- tw %>%
                select(enc_id) %>%
                left_join(in_win, by = 'enc_id') %>%
-               left_join(lookback, by = 'enc_id') %>%
-               mutate(!!v := dplyr::coalesce(!!v, !!v_lb)) %>%
-               select(enc_id, !!v)
+               left_join(lookback, by = 'enc_id')
+          if (!var      %in% names(out)) out[[var]]      <- NA_real_
+          if (!'val_lb' %in% names(out)) out[['val_lb']] <- NA_real_
+          out %>%
+               mutate(!!rlang::sym(var) := dplyr::coalesce(.data[[var]], val_lb)) %>%
+               select(enc_id, dplyr::all_of(var))
      }
 
      psofa_labnames  <- c('platelet count, auto', 'po2 (arterial)',
@@ -296,7 +298,9 @@ assemble_psofa_data <- function(labs,
      df_map <- tw %>%
           select(enc_id) %>%
           left_join(df_map_window, by = 'enc_id') %>%
-          left_join(df_map_lookback, by = 'enc_id') %>%
+          left_join(df_map_lookback, by = 'enc_id')
+     if (!'map_lb' %in% names(df_map)) df_map[['map_lb']] <- NA_real_
+     df_map <- df_map %>%
           mutate(map = dplyr::coalesce(map, map_lb)) %>%
           select(enc_id, map)
 
