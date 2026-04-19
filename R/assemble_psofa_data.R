@@ -177,7 +177,8 @@ assemble_psofa_data <- function(labs,
                group_by(enc_id) %>%
                dplyr::slice_max(specimen_taken_time, n = 1, with_ties = FALSE) %>%
                ungroup() %>%
-               select(enc_id, !!v_lb := !!v)
+               select(enc_id, !!v) %>%
+               rename(!!v_lb := !!v)
           tw %>%
                select(enc_id) %>%
                left_join(in_win, by = 'enc_id') %>%
@@ -289,7 +290,8 @@ assemble_psofa_data <- function(labs,
           group_by(enc_id) %>%
           dplyr::slice_max(vital_time, n = 1, with_ties = FALSE) %>%
           ungroup() %>%
-          select(enc_id, map_lb = map)
+          select(enc_id, map) %>%
+          rename(map_lb = map)
 
      df_map <- tw %>%
           select(enc_id) %>%
