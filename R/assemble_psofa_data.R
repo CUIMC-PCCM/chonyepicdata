@@ -31,6 +31,12 @@
 #'   (date of birth as Date or character in YYYY-MM-DD format). Age is computed
 #'   from \code{dob} and the window start time. Ignored if \code{agem} is
 #'   supplied.
+#' @param vitals_col_map Optional named character vector passed to
+#'   \link{load_vitals} to remap source column names. Only used when
+#'   \code{vitals} is a file path.
+#' @param vitals_name_map Optional named character vector passed to
+#'   \link{clean_vitals} to remap flowsheet display names to canonical vital
+#'   sign names.
 #' @param fio2_spo2_key_col Name of the encounter ID column in the FiO2/SpO2
 #'   flowsheet file. Default \code{'PAT_ENC_CSN_ID'}.
 #' @param fio2_spo2_time_col Name of the timestamp column. Default
@@ -387,7 +393,7 @@ assemble_psofa_data <- function(labs,
                bp_cands <- vitals_raw_names[str_detect(vitals_raw_names, 'map|blood|pressure|bp|arterial')]
                message("    Vitals BP/MAP candidates: ", paste(bp_cands, collapse = ' | '))
           } else {
-               message("    clean_vitals was not called — vitals columns: ",
+               message("    clean_vitals was not called \u2014 vitals columns: ",
                        paste(names(vitals), collapse = ', '))
           }
      }

@@ -15,6 +15,8 @@ assemble_psofa_data(
   t_max = 24,
   agem = NULL,
   dob = NULL,
+  vitals_col_map = NULL,
+  vitals_name_map = NULL,
   fio2_spo2_key_col = "PAT_ENC_CSN_ID",
   fio2_spo2_time_col = "RECORDED_TIME",
   fio2_spo2_var_col = "DISPLAY_NAME",
@@ -60,6 +62,14 @@ scoring window (relative mode only). Default \code{24}.}
 (date of birth as Date or character in YYYY-MM-DD format). Age is computed
 from \code{dob} and the window start time. Ignored if \code{agem} is
 supplied.}
+
+\item{vitals_col_map}{Optional named character vector passed to
+\link{load_vitals} to remap source column names. Only used when
+\code{vitals} is a file path.}
+
+\item{vitals_name_map}{Optional named character vector passed to
+\link{clean_vitals} to remap flowsheet display names to canonical vital
+sign names.}
 
 \item{fio2_spo2_key_col}{Name of the encounter ID column in the FiO2/SpO2
 flowsheet file. Default \code{'PAT_ENC_CSN_ID'}.}

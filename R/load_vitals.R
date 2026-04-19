@@ -61,7 +61,7 @@ load_vitals <- function(vitals_filepath,
 {
 
      # Required to avoid warnings when building package
-     enc_id <- NULL
+     enc_id <- display_name <- measure_value <- NULL
 
      # Load in all vitals
      suppressWarnings({
