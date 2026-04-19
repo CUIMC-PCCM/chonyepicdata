@@ -79,6 +79,12 @@ load_vitals <- function(vitals_filepath,
           rename(any_of(rename_vec)) %>%
           mutate(across(any_of(c("enc_id", "mrn")), ~ trimws(as.character(.x))))
 
+     # Fallbacks for common Epic export column name variants
+     if (!'flowsheet_name' %in% names(df_vitals) && 'display_name'   %in% names(df_vitals))
+          df_vitals <- rename(df_vitals, flowsheet_name = display_name)
+     if (!'meas_value'     %in% names(df_vitals) && 'measure_value'  %in% names(df_vitals))
+          df_vitals <- rename(df_vitals, meas_value = measure_value)
+
      # If a particular vital sign was specified, then just filter to that one
      if(!is.na(vitals_to_load))
      {

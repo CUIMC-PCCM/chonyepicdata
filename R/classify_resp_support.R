@@ -35,40 +35,42 @@ classify_resp_support <- function(df_resp_wide,
                                   verbose = TRUE) {
 
      # Set all variables created externally to NULL to avoid warnings when building
-     amp_hfov <- bipap_rate <- cpap <- current_support <- delta_p <- enc_id <- epap <- etco2 <- freq_hfov <- ipap <- itime_niv <- itime_vent <- joingroup <-
-          lda_airway <- map_vent <- niv_mode <- o2_deliv_method <- o2_flow_rate <- peep <- pip_set <- resp_meas_time <- support_change <- support_episode <-
-          support_time_start <- support_time_stop <- this_duration <- timediff <- timefromlast <- timetonext <- vent_mode <- vent_type <- NULL
+     amp_hfov <- bcpap_status <- bipap_rate <- bipap_status <- cpap <- current_support <- delta_p <- enc_id <- epap <- etco2 <- freq_hfov <- hfnc_status <-
+          ipap <- itime_niv <- itime_vent <- joingroup <- lda_airway <- map_vent <- niv_mode <- o2_deliv_method <- o2_flow_rate <- peep <- pip_set <-
+          resp_meas_time <- support_change <- support_episode <- support_time_start <- support_time_stop <- this_duration <- timediff <- timefromlast <-
+          timetonext <- vent_mode <- vent_status <- vent_type <- NULL
 
      if(verbose) {
           print('Cleaning and arranging data by levels of support...')
      }
 
-     # First limit to just variables we will use to define an active ventilator
+     # First limit to just variables we will use to define an active ventilator.
+     # Use any_of() for optional flowsheet columns to avoid NULL-shadowing from the
+     # R CMD check NULL-init block above.
      df_resp <- df_resp_wide %>%
           select(enc_id,
                  resp_meas_time,
                  o2_deliv_method,
                  ends_with('status'),
-                 amp_hfov,
-                 bipap_rate,
-                 cpap,
-                 delta_p,
-                 epap,
-                 etco2,
-                 freq_hfov,
-                 ipap,
-                 itime_niv,
-                 itime_vent,
-                 lda_airway,
-                 map_vent,
-                 niv_mode,
-                 o2_flow_rate,
-                 peep,
-                 pip_set,
-                 vent_mode,
-                 vent_type,
+                 any_of(c("amp_hfov", "bipap_rate", "cpap", "delta_p", "epap",
+                           "etco2", "freq_hfov", "ipap", "itime_niv", "itime_vent",
+                           "lda_airway", "map_vent", "niv_mode", "o2_flow_rate",
+                           "peep", "pip_set", "vent_mode", "vent_type"))
           ) %>%
           arrange(enc_id, resp_meas_time)
+
+     # Ensure all columns referenced in case_when exist, even if absent from source data
+     for (.col in c("vent_status", "hfnc_status", "bipap_status", "bcpap_status")) {
+          if (!.col %in% names(df_resp)) df_resp[[.col]] <- NA_character_
+     }
+     for (.col in c("amp_hfov", "bipap_rate", "cpap", "delta_p", "epap", "etco2",
+                    "freq_hfov", "ipap", "itime_niv", "itime_vent", "map_vent",
+                    "o2_flow_rate", "peep", "pip_set")) {
+          if (!.col %in% names(df_resp)) df_resp[[.col]] <- NA_real_
+     }
+     for (.col in c("lda_airway", "niv_mode", "vent_mode", "vent_type")) {
+          if (!.col %in% names(df_resp)) df_resp[[.col]] <- NA_character_
+     }
 
      # Determine whether a ventilator is active or inactive at any given time
      # Remove any areas where there is no data

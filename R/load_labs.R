@@ -64,7 +64,7 @@ load_labs <- function(labs_filepath,
                                 n_max = max_load,
                                 delim = '|') %>%
                clean_names() %>%
-               mutate(across(where(is.character), str_to_lower))
+               mutate(across(where(is.character), ~ trimws(str_to_lower(.x))))
      })
 
      # Rename columns based on col_map, skipping any that don't exist in the file

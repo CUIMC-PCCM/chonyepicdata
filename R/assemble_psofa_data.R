@@ -61,6 +61,8 @@ assemble_psofa_data <- function(labs,
                                 t_max = 24,
                                 agem = NULL,
                                 dob  = NULL,
+                                vitals_col_map  = NULL,
+                                vitals_name_map = NULL,
                                 fio2_spo2_key_col     = 'PAT_ENC_CSN_ID',
                                 fio2_spo2_time_col    = 'RECORDED_TIME',
                                 fio2_spo2_var_col     = 'DISPLAY_NAME',
@@ -77,7 +79,7 @@ assemble_psofa_data <- function(labs,
           pao2 <- pf_ratio <- sf_ratio <- map_ni <- map_art <- map <- vital_time <-
           flowsheet_name <- med_name <- dose_unit <- frequency <- taken_time <- dose <-
           result <- med <- max_dose <- current_support <- support_time_start <-
-          support_time_stop <- resp_support <- platelets <- tbili1 <- tbili2 <- tbili <-
+          support_time_stop <- resp_support <- platelets <- tbili_total <- dbili <- tbili <-
           creatinine <- epi <- norepi <- dopa <- dobut <- dob_col <- agem_val <-
           x <- y <- overlaps <- map_lb <- val_lb <- in_window <- NULL
 
@@ -120,11 +122,16 @@ assemble_psofa_data <- function(labs,
           labs <- labs %>% mutate(specimen_taken_time = lubridate::ymd_hms(specimen_taken_time, quiet = TRUE))
 
      if (is.character(vitals)) {
-          vitals <- load_vitals(vitals)
+          load_args <- list(vitals_filepath = vitals)
+          if (!is.null(vitals_col_map)) load_args$col_map <- vitals_col_map
+          vitals <- do.call(load_vitals, load_args)
      }
      # Accept either raw long-format (has flowsheet_name) or pre-cleaned wide-format
      if ('flowsheet_name' %in% names(vitals)) {
-          vitals <- clean_vitals(vitals)
+          vitals_raw_names <- unique(vitals$flowsheet_name)
+          vitals <- clean_vitals(vitals, name_map = vitals_name_map)
+     } else {
+          vitals_raw_names <- NULL
      }
 
      if (is.character(fio2_spo2)) {
@@ -198,8 +205,8 @@ assemble_psofa_data <- function(labs,
      }
 
      psofa_labnames  <- c('platelet count, auto', 'po2 (arterial)',
-                          'bilirubin, total', 'bilirubin, plasma', 'creatinine')
-     psofa_labrenames <- c('platelets', 'pao2', 'tbili1', 'tbili2', 'creatinine')
+                          'bilirubin, total', 'bilirubin, direct', 'creatinine')
+     psofa_labrenames <- c('platelets', 'pao2', 'tbili_total', 'dbili', 'creatinine')
 
      labs_filtered <- labs %>%
           filter(enc_id %in% tw$enc_id) %>%
@@ -247,15 +254,16 @@ assemble_psofa_data <- function(labs,
                  across(any_of(avail_renames), ~ dplyr::na_if(.x, '')),
                  across(any_of(avail_renames), as.numeric))
 
-     # Add missing bilirubin columns so the rowMeans call always works
-     for (col in c('tbili1', 'tbili2')) {
+     # Ensure both bili columns exist before combining
+     for (col in c('tbili_total', 'dbili')) {
           if (!col %in% names(df_labs_psofa)) df_labs_psofa[[col]] <- NA_real_
      }
 
+     # Use worst (highest) of total and direct bilirubin
      df_labs_psofa <- df_labs_psofa %>%
-          mutate(tbili = rowMeans(dplyr::pick(tbili1, tbili2), na.rm = TRUE),
-                 tbili = dplyr::na_if(tbili, NaN)) %>%
-          select(-tbili1, -tbili2)
+          mutate(tbili = pmax(tbili_total, dbili, na.rm = TRUE),
+                 tbili = dplyr::na_if(tbili, -Inf)) %>%
+          select(-tbili_total, -dbili)
 
      # Intermittent labs: worst in window with pre-window lookback fallback
      df_creatinine <- lab_with_fallback(df_labs_psofa, 'creatinine', max)
@@ -316,6 +324,22 @@ assemble_psofa_data <- function(labs,
           ungroup() %>%
           select(enc_id, recorded_time, sf_ratio)
 
+     # For SpO2 observations with no documented FiO2 in the 4-hour lookback window,
+     # carry forward the last recorded FiO2 before that SpO2 (LOCF, no time limit),
+     # or default to 21% (room air) if no FiO2 was ever recorded for that encounter.
+     locf_by <- join_by(enc_id, recorded_time >= fio2_time)
+     df_sf_fallback <- df_spo2_look %>%
+          anti_join(df_sf_ratio, by = c('enc_id', 'recorded_time')) %>%
+          left_join(df_fio2_look, by = locf_by) %>%
+          group_by(enc_id, recorded_time) %>%
+          arrange(enc_id, recorded_time, desc(fio2_time)) %>%
+          slice_head(n = 1) %>%
+          ungroup() %>%
+          mutate(fio2     = dplyr::coalesce(fio2, 21),
+                 sf_ratio = round(spo2 / fio2 * 100)) %>%
+          select(enc_id, recorded_time, sf_ratio)
+     df_sf_ratio <- bind_rows(df_sf_ratio, df_sf_fallback)
+
      # *****************************************************************************
      # MAP: worst in window with pre-window lookback --------------------------------
      # *****************************************************************************
@@ -356,6 +380,18 @@ assemble_psofa_data <- function(labs,
           mutate(map = dplyr::coalesce(map, map_lb)) %>%
           select(enc_id, map)
 
+     if (all(is.na(df_map$map))) {
+          n_match <- n_distinct(df_vitals_tw$enc_id)
+          message(sprintf("  \u26a0  MAP: 100%% missing. %d/%d tw encounters matched vitals.", n_match, nrow(tw)))
+          if (!is.null(vitals_raw_names)) {
+               bp_cands <- vitals_raw_names[str_detect(vitals_raw_names, 'map|blood|pressure|bp|arterial')]
+               message("    Vitals BP/MAP candidates: ", paste(bp_cands, collapse = ' | '))
+          } else {
+               message("    clean_vitals was not called — vitals columns: ",
+                       paste(names(vitals), collapse = ', '))
+          }
+     }
+
      # *****************************************************************************
      # Pressors: max dose within time window ---------------------------------------
      # *****************************************************************************
@@ -375,7 +411,8 @@ assemble_psofa_data <- function(labs,
 
      df_pressors <- meds %>%
           filter(stringr::str_detect(med_name, 'epinephrine|norepinephrine|dopamine|dobutamine')) %>%
-          filter(dose_unit == 'mcg/kg/min' | frequency == 'continuous') %>%
+          filter(dose_unit %in% c('mcg/kg/min', 'milliunits/kg/min', 'units/hr') | frequency == 'continuous') %>%
+          filter(!stringr::str_detect(med_name, 'topical|cream|ointment|ophthalm|nasal|inhaled')) %>%
           inner_join(tw, by = 'enc_id') %>%
           filter(taken_time >= t_start & taken_time <= t_end) %>%
           select(-t_start, -t_end) %>%
