@@ -201,7 +201,15 @@ assemble_psofa_data <- function(labs,
                           'bilirubin, total', 'bilirubin, plasma', 'creatinine')
      psofa_labrenames <- c('platelets', 'pao2', 'tbili1', 'tbili2', 'creatinine')
 
-     labs_filtered <- labs %>% filter(enc_id %in% tw$enc_id)
+     labs_filtered <- labs %>%
+          filter(enc_id %in% tw$enc_id) %>%
+          mutate(common_name = if_else(
+               stringr::str_detect(common_name, 'po2') &
+                    stringr::str_detect(common_name, 'arterial') &
+                    !stringr::str_detect(common_name, 'cord'),
+               'po2 (arterial)',
+               common_name
+          ))
      n_lab_overlap <- sum(tw$enc_id %in% unique(labs$enc_id))
      if (n_lab_overlap == 0) {
           message('WARNING: 0 enc_id matches between labs and time_window.')
