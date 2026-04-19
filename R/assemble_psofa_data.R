@@ -79,7 +79,7 @@ assemble_psofa_data <- function(labs,
           result <- med <- max_dose <- current_support <- support_time_start <-
           support_time_stop <- resp_support <- platelets <- tbili1 <- tbili2 <- tbili <-
           creatinine <- epi <- norepi <- dopa <- dobut <- dob_col <- agem_val <-
-          x <- y <- overlaps <- NULL
+          x <- y <- overlaps <- map_lb <- NULL
 
      # *****************************************************************************
      # Input validation ------------------------------------------------------------
@@ -175,7 +175,7 @@ assemble_psofa_data <- function(labs,
                inner_join(tw, by = 'enc_id') %>%
                filter(specimen_taken_time < t_start & !is.na(!!v)) %>%
                group_by(enc_id) %>%
-               slice_max(specimen_taken_time, n = 1, with_ties = FALSE) %>%
+               dplyr::slice_max(specimen_taken_time, n = 1, with_ties = FALSE) %>%
                ungroup() %>%
                select(enc_id, !!v)
           tw %>%
@@ -287,7 +287,7 @@ assemble_psofa_data <- function(labs,
           inner_join(tw, by = 'enc_id') %>%
           filter(vital_time < t_start & !is.na(map)) %>%
           group_by(enc_id) %>%
-          slice_max(vital_time, n = 1, with_ties = FALSE) %>%
+          dplyr::slice_max(vital_time, n = 1, with_ties = FALSE) %>%
           ungroup() %>%
           select(enc_id, map)
 
