@@ -164,6 +164,11 @@ assemble_psofa_data <- function(labs,
      # Helper: worst value in window, falling back to most recent pre-window value.
      # If no value exists at all, returns NA (calc_psofa treats NA as normal/0).
      lab_with_fallback <- function(df, var, worst_fn) {
+          if (!var %in% names(df)) {
+               out <- tw %>% select(enc_id)
+               out[[var]] <- NA_real_
+               return(out)
+          }
           in_win <- df %>%
                inner_join(tw, by = 'enc_id') %>%
                filter(specimen_taken_time >= t_start, specimen_taken_time <= t_end,
@@ -197,6 +202,8 @@ assemble_psofa_data <- function(labs,
      available_idx  <- psofa_labnames %in% unique(labs_filtered$common_name)
      avail_names    <- psofa_labnames[available_idx]
      avail_renames  <- psofa_labrenames[available_idx]
+     message('pSOFA labs matched: ', paste(avail_renames, collapse = ', '),
+             if (any(!available_idx)) paste0(' | NOT matched: ', paste(psofa_labnames[!available_idx], collapse = ', ')))
 
      df_labs_psofa <- labs_filtered %>%
           get_labs_by_type(labnames = avail_names, labvarnames = avail_renames) %>%
