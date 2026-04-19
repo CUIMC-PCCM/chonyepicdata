@@ -61,11 +61,10 @@ check <- function(label, expr) {
 # ── Real data ─────────────────────────────────────────────────────────────────
 
 skip_real <- any(c(real_labs_file, real_vitals_file, real_meds_file,
-                   real_fio2_spo2_file, real_resp_file) == "") ||
-             is.null(real_time_window) || (is.null(real_agem) && is.null(real_dob))
+                   real_fio2_spo2_file, real_resp_file) == "")
 
 if (skip_real) {
-     cat("\n⚠  Skipping real-data section — set file paths and time_window above.\n\n")
+     cat("\n⚠  Skipping real-data section — set file paths above.\n\n")
 } else {
 
      cat("\n=== Step 1: classify_resp_support ===\n")
@@ -74,6 +73,25 @@ if (skip_real) {
      df_resp_epi   <- classify_resp_support(df_resp_wide)
      cat(sprintf("Respiratory episodes: %d | Encounters: %d\n",
                  nrow(df_resp_epi), n_distinct(df_resp_epi$enc_id)))
+
+     # If no time window provided, use a broad window capturing all data.
+     # Results will not be clinically meaningful but verify the pipeline runs.
+     if (is.null(real_time_window)) {
+          cat("⚠  time_window not provided — using broad window (all available data)\n")
+          real_time_window <- df_resp_epi %>%
+               distinct(enc_id) %>%
+               mutate(t_start = ymd_hms("2000-01-01 00:00:00"),
+                      t_end   = ymd_hms("2099-12-31 00:00:00"))
+     }
+
+     # If no age provided, randomize (0–17 years) for pipeline testing only.
+     if (is.null(real_agem) && is.null(real_dob)) {
+          cat("⚠  agem/dob not provided — randomizing ages for pipeline testing only\n")
+          set.seed(42)
+          real_agem <- real_time_window %>%
+               distinct(enc_id) %>%
+               mutate(agem = sample(1L:215L, n(), replace = TRUE))
+     }
 
      cat("\n=== Step 2: assemble_psofa_data ===\n")
      df_psofa <- assemble_psofa_data(
