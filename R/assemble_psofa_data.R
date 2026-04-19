@@ -177,11 +177,11 @@ assemble_psofa_data <- function(labs,
                group_by(enc_id) %>%
                dplyr::slice_max(specimen_taken_time, n = 1, with_ties = FALSE) %>%
                ungroup() %>%
-               select(enc_id, !!v)
+               select(enc_id, !!v_lb := !!v)
           tw %>%
                select(enc_id) %>%
                left_join(in_win, by = 'enc_id') %>%
-               left_join(lookback, by = 'enc_id', suffix = c('', '_lb')) %>%
+               left_join(lookback, by = 'enc_id') %>%
                mutate(!!v := dplyr::coalesce(!!v, !!v_lb)) %>%
                select(enc_id, !!v)
      }
@@ -289,12 +289,12 @@ assemble_psofa_data <- function(labs,
           group_by(enc_id) %>%
           dplyr::slice_max(vital_time, n = 1, with_ties = FALSE) %>%
           ungroup() %>%
-          select(enc_id, map)
+          select(enc_id, map_lb = map)
 
      df_map <- tw %>%
           select(enc_id) %>%
           left_join(df_map_window, by = 'enc_id') %>%
-          left_join(df_map_lookback, by = 'enc_id', suffix = c('', '_lb')) %>%
+          left_join(df_map_lookback, by = 'enc_id') %>%
           mutate(map = dplyr::coalesce(map, map_lb)) %>%
           select(enc_id, map)
 
