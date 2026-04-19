@@ -153,8 +153,7 @@ assemble_psofa_data <- function(labs,
                select(enc_id, dob) %>%
                left_join(ref_times, by = 'enc_id') %>%
                mutate(dob  = lubridate::ymd(dob),
-                      agem = floor(as.numeric(lubridate::as.duration(as.Date(t_start) - dob),
-                                              'months'))) %>%
+                      agem = lubridate::interval(dob, as.Date(t_start)) %/% months(1)) %>%
                select(enc_id, agem)
      }
 
@@ -162,25 +161,68 @@ assemble_psofa_data <- function(labs,
      # Labs: extract pSOFA-relevant values -----------------------------------------
      # *****************************************************************************
 
+     # Helper: worst value in window, falling back to most recent pre-window value.
+     # If no value exists at all, returns NA (calc_psofa treats NA as normal/0).
+     lab_with_fallback <- function(df, var, worst_fn) {
+          v      <- rlang::sym(var)
+          v_lb   <- rlang::sym(paste0(var, '_lb'))
+          in_win <- df %>%
+               inner_join(tw, by = 'enc_id') %>%
+               filter(specimen_taken_time >= t_start & specimen_taken_time <= t_end & !is.na(!!v)) %>%
+               group_by(enc_id) %>%
+               summarize(!!v := worst_fn(!!v, na.rm = TRUE), .groups = 'drop')
+          lookback <- df %>%
+               inner_join(tw, by = 'enc_id') %>%
+               filter(specimen_taken_time < t_start & !is.na(!!v)) %>%
+               group_by(enc_id) %>%
+               slice_max(specimen_taken_time, n = 1, with_ties = FALSE) %>%
+               ungroup() %>%
+               select(enc_id, !!v)
+          tw %>%
+               select(enc_id) %>%
+               left_join(in_win, by = 'enc_id') %>%
+               left_join(lookback, by = 'enc_id', suffix = c('', '_lb')) %>%
+               mutate(!!v := dplyr::coalesce(!!v, !!v_lb)) %>%
+               select(enc_id, !!v)
+     }
+
      psofa_labnames  <- c('platelet count, auto', 'po2 (arterial)',
                           'bilirubin, total', 'bilirubin, plasma', 'creatinine')
      psofa_labrenames <- c('platelets', 'pao2', 'tbili1', 'tbili2', 'creatinine')
 
-     df_labs_psofa <- labs %>%
-          filter(enc_id %in% tw$enc_id) %>%
-          get_labs_by_type(labnames = psofa_labnames, labvarnames = psofa_labrenames) %>%
-          mutate(across(all_of(psofa_labrenames), ~ stringr::str_remove_all(.x, '[^0-9.]')),
-                 across(all_of(psofa_labrenames), ~ dplyr::na_if(.x, '')),
-                 across(all_of(psofa_labrenames), as.numeric),
-                 tbili = rowMeans(dplyr::pick(tbili1, tbili2), na.rm = TRUE),
+     labs_filtered <- labs %>% filter(enc_id %in% tw$enc_id)
+     available_idx  <- psofa_labnames %in% unique(labs_filtered$common_name)
+     avail_names    <- psofa_labnames[available_idx]
+     avail_renames  <- psofa_labrenames[available_idx]
+
+     df_labs_psofa <- labs_filtered %>%
+          get_labs_by_type(labnames = avail_names, labvarnames = avail_renames) %>%
+          mutate(across(any_of(avail_renames), ~ stringr::str_remove_all(.x, '[^0-9.]')),
+                 across(any_of(avail_renames), ~ dplyr::na_if(.x, '')),
+                 across(any_of(avail_renames), as.numeric))
+
+     # Add missing bilirubin columns so the rowMeans call always works
+     for (col in c('tbili1', 'tbili2')) {
+          if (!col %in% names(df_labs_psofa)) df_labs_psofa[[col]] <- NA_real_
+     }
+
+     df_labs_psofa <- df_labs_psofa %>%
+          mutate(tbili = rowMeans(dplyr::pick(tbili1, tbili2), na.rm = TRUE),
                  tbili = dplyr::na_if(tbili, NaN)) %>%
           select(-tbili1, -tbili2)
 
-     # Filter labs to time window
-     df_labs_psofa <- df_labs_psofa %>%
+     # Intermittent labs: worst in window with pre-window lookback fallback
+     df_creatinine <- lab_with_fallback(df_labs_psofa, 'creatinine', max)
+     df_platelets  <- lab_with_fallback(df_labs_psofa, 'platelets',  min)
+     df_tbili      <- lab_with_fallback(df_labs_psofa, 'tbili',      max)
+
+     # PaO2: window-filtered time-series only (needs contemporaneous FiO2 for P/F)
+     df_pao2_ts <- df_labs_psofa %>%
+          select(enc_id, specimen_taken_time, pao2) %>%
+          filter(!is.na(pao2)) %>%
           inner_join(tw, by = 'enc_id') %>%
           filter(specimen_taken_time >= t_start & specimen_taken_time <= t_end) %>%
-          select(-t_start, -t_end)
+          select(enc_id, specimen_taken_time, pao2)
 
      # *****************************************************************************
      # FiO2 / SpO2: clean and filter to time window --------------------------------
@@ -202,7 +244,7 @@ assemble_psofa_data <- function(labs,
 
      df_fio2_look  <- df_fio2_spo2 %>% select(enc_id, fio2_time = recorded_time, fio2) %>% filter(!is.na(fio2))
      df_spo2_look  <- df_fio2_spo2 %>% select(enc_id, recorded_time, spo2)   %>% filter(!is.na(spo2))  %>% mutate(earliest_time = recorded_time - lubridate::hours(4))
-     df_pao2_look  <- df_labs_psofa %>% select(enc_id, recorded_time = specimen_taken_time, pao2) %>% filter(!is.na(pao2)) %>% mutate(earliest_time = recorded_time - lubridate::hours(4))
+     df_pao2_look  <- df_pao2_ts   %>% select(enc_id, recorded_time = specimen_taken_time, pao2) %>% filter(!is.na(pao2)) %>% mutate(earliest_time = recorded_time - lubridate::hours(4))
 
      lookback_by <- join_by(enc_id, between(x$fio2_time, y$earliest_time, y$recorded_time))
 
@@ -223,20 +265,38 @@ assemble_psofa_data <- function(labs,
           select(enc_id, recorded_time, sf_ratio)
 
      # *****************************************************************************
-     # MAP: filter vitals to time window -------------------------------------------
+     # MAP: worst in window with pre-window lookback --------------------------------
      # *****************************************************************************
 
-     df_map <- vitals %>%
+     df_map_all <- vitals %>%
           filter(enc_id %in% tw$enc_id) %>%
           mutate(map_ni  = if_else(map_ni  %in% 15:180, map_ni,  NA_real_),
                  map_art = if_else(map_art %in% 15:180, map_art, NA_real_)) %>%
           filter(!(is.na(map_art) & is.na(map_ni))) %>%
           mutate(map = dplyr::coalesce(map_art, map_ni)) %>%
-          select(enc_id, recorded_time = vital_time, map) %>%
-          distinct() %>%
+          select(enc_id, vital_time, map) %>%
+          distinct()
+
+     df_map_window <- df_map_all %>%
           inner_join(tw, by = 'enc_id') %>%
-          filter(recorded_time >= t_start & recorded_time <= t_end) %>%
-          select(-t_start, -t_end)
+          filter(vital_time >= t_start & vital_time <= t_end & !is.na(map)) %>%
+          group_by(enc_id) %>%
+          summarize(map = min(map, na.rm = TRUE), .groups = 'drop')
+
+     df_map_lookback <- df_map_all %>%
+          inner_join(tw, by = 'enc_id') %>%
+          filter(vital_time < t_start & !is.na(map)) %>%
+          group_by(enc_id) %>%
+          slice_max(vital_time, n = 1, with_ties = FALSE) %>%
+          ungroup() %>%
+          select(enc_id, map)
+
+     df_map <- tw %>%
+          select(enc_id) %>%
+          left_join(df_map_window, by = 'enc_id') %>%
+          left_join(df_map_lookback, by = 'enc_id', suffix = c('', '_lb')) %>%
+          mutate(map = dplyr::coalesce(map, map_lb)) %>%
+          select(enc_id, map)
 
      # *****************************************************************************
      # Pressors: max dose within time window ---------------------------------------
@@ -305,41 +365,25 @@ assemble_psofa_data <- function(labs,
      # Assemble wide dataset -------------------------------------------------------
      # *****************************************************************************
 
-     # Combine time-series data, then summarize to worst values per encounter
-     df_psofa_ts <- df_labs_psofa %>%
-          select(enc_id, recorded_time = specimen_taken_time, platelets, pao2, tbili, creatinine) %>%
-          full_join(df_fio2_spo2 %>% select(enc_id, recorded_time, fio2, spo2), by = c('enc_id', 'recorded_time')) %>%
-          full_join(df_pf_ratio,  by = c('enc_id', 'recorded_time')) %>%
-          full_join(df_sf_ratio,  by = c('enc_id', 'recorded_time')) %>%
-          full_join(df_map,       by = c('enc_id', 'recorded_time')) %>%
-          arrange(enc_id, recorded_time)
-
-     # LOCF for intermittently-measured labs
-     df_psofa_ts <- df_psofa_ts %>%
-          group_by(enc_id) %>%
-          arrange(enc_id, recorded_time) %>%
-          tidyr::fill(creatinine, .direction = 'downup') %>%
-          tidyr::fill(platelets,  .direction = 'downup') %>%
-          tidyr::fill(tbili,      .direction = 'downup') %>%
-          ungroup()
-
-     # Summarize to worst (most abnormal) value per encounter
+     # Summarize P/F and S/F to worst within window
      suppressWarnings(
-          df_psofa_wide <- df_psofa_ts %>%
+          df_ratios <- full_join(df_pf_ratio, df_sf_ratio, by = c('enc_id', 'recorded_time')) %>%
                group_by(enc_id) %>%
                summarize(
-                    creatinine = max(creatinine, na.rm = TRUE),
-                    platelets  = min(platelets,  na.rm = TRUE),
-                    tbili      = max(tbili,       na.rm = TRUE),
-                    pf_ratio   = min(pf_ratio,    na.rm = TRUE),
-                    sf_ratio   = min(sf_ratio,    na.rm = TRUE),
-                    map        = min(map,          na.rm = TRUE),
-                    .groups    = 'drop'
+                    pf_ratio = min(pf_ratio, na.rm = TRUE),
+                    sf_ratio = min(sf_ratio, na.rm = TRUE),
+                    .groups  = 'drop'
                ) %>%
                mutate(across(where(is.numeric), ~ dplyr::if_else(is.infinite(.x), NA_real_, .x)))
      )
 
-     df_psofa_wide <- df_psofa_wide %>%
+     df_psofa_wide <- tw %>%
+          select(enc_id) %>%
+          left_join(df_creatinine,  by = 'enc_id') %>%
+          left_join(df_platelets,   by = 'enc_id') %>%
+          left_join(df_tbili,       by = 'enc_id') %>%
+          left_join(df_ratios,      by = 'enc_id') %>%
+          left_join(df_map,         by = 'enc_id') %>%
           left_join(df_pressors,    by = 'enc_id') %>%
           left_join(df_resp_support, by = 'enc_id') %>%
           left_join(df_agem,         by = 'enc_id') %>%

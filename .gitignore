@@ -39,7 +39,7 @@ data/*
 # /config
 
 # Testing files
-tests/
+# tests/
 
 # Claude Code
 .claude/

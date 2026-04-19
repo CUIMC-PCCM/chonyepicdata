@@ -60,6 +60,7 @@ calc_psofa <- function(df_psofa) {
                ),
 
                pfscore = case_when(
+                    is.na(pf_ratio)                          ~ NA_integer_,
                     pf_ratio %in% 300:399                    ~ 1L,
                     pf_ratio %in% 200:299                    ~ 2L,
                     pf_ratio %in% 100:199 & resp_support     ~ 3L,
@@ -68,6 +69,7 @@ calc_psofa <- function(df_psofa) {
                ),
 
                sfscore = case_when(
+                    is.na(sf_ratio)                          ~ NA_integer_,
                     sf_ratio %in% 264:291                    ~ 1L,
                     sf_ratio %in% 221:263                    ~ 2L,
                     sf_ratio %in% 148:220 & resp_support     ~ 3L,
