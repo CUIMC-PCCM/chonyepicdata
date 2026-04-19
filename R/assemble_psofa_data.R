@@ -202,6 +202,12 @@ assemble_psofa_data <- function(labs,
      psofa_labrenames <- c('platelets', 'pao2', 'tbili1', 'tbili2', 'creatinine')
 
      labs_filtered <- labs %>% filter(enc_id %in% tw$enc_id)
+     n_lab_overlap <- sum(tw$enc_id %in% unique(labs$enc_id))
+     if (n_lab_overlap == 0) {
+          message('WARNING: 0 enc_id matches between labs and time_window.')
+          message('  Sample lab enc_ids:  ', paste(head(unique(labs$enc_id)), collapse = ', '))
+          message('  Sample TW  enc_ids:  ', paste(head(tw$enc_id),          collapse = ', '))
+     }
      available_idx  <- psofa_labnames %in% unique(labs_filtered$common_name)
      avail_names    <- psofa_labnames[available_idx]
      avail_renames  <- psofa_labrenames[available_idx]
@@ -294,8 +300,11 @@ assemble_psofa_data <- function(labs,
      # MAP: worst in window with pre-window lookback --------------------------------
      # *****************************************************************************
 
-     df_map_all <- vitals %>%
-          filter(enc_id %in% tw$enc_id) %>%
+     df_vitals_tw <- vitals %>% filter(enc_id %in% tw$enc_id)
+     if (!'map_ni'  %in% names(df_vitals_tw)) df_vitals_tw[['map_ni']]  <- NA_real_
+     if (!'map_art' %in% names(df_vitals_tw)) df_vitals_tw[['map_art']] <- NA_real_
+
+     df_map_all <- df_vitals_tw %>%
           mutate(map_ni  = if_else(map_ni  %in% 15:180, map_ni,  NA_real_),
                  map_art = if_else(map_art %in% 15:180, map_art, NA_real_)) %>%
           filter(!(is.na(map_art) & is.na(map_ni))) %>%
