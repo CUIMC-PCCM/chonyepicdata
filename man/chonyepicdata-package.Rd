@@ -6,6 +6,6 @@
 \alias{chonyepicdata-package}
 \title{chonyepicdata: Loads, cleans, and processes CHONY EHR inpatient data from the Epic era (after 2/1/2020)}
 \description{
-This section TBD at a later date.
+Tools for loading, cleaning, and processing inpatient EHR data from NewYork-Presbyterian/Columbia University Irving Medical Center, exported from Epic (encounters after 2020-02-01). Provides functions for loading and standardizing labs, vitals, medications, and flowsheet data, as well as higher-level pipelines for clinical scoring including the pediatric Sequential Organ Failure Assessment (pSOFA) score and respiratory support classification.
 }
 \keyword{internal}

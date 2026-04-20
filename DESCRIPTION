@@ -1,10 +1,16 @@
 Package: chonyepicdata
 Type: Package
 Title: Loads, cleans, and processes CHONY EHR inpatient data from the Epic era (after 2/1/2020)
-Version: 0.7
+Version: 0.8
 Author: Andrew Geneslaw
 Maintainer: Andrew Geneslaw <asg2195@cumc.columbia.edu>
-Description: This section TBD at a later date.
+Description: Tools for loading, cleaning, and processing inpatient EHR data
+    from NewYork-Presbyterian/Columbia University Irving Medical Center,
+    exported from Epic (encounters after 2020-02-01). Provides functions for
+    loading and standardizing labs, vitals, medications, and flowsheet data,
+    as well as higher-level pipelines for clinical scoring including the
+    pediatric Sequential Organ Failure Assessment (pSOFA) score and
+    respiratory support classification.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
