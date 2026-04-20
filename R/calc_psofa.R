@@ -147,7 +147,7 @@ calc_psofa <- function(df_psofa) {
                     TRUE                                                   ~ 0L
                ),
 
-               pf_or_sf_score = dplyr::coalesce(pfscore, sfscore),
+               pf_or_sf_score = dplyr::coalesce(pfscore, sfscore, 0L),
                psofa = pf_or_sf_score + pltscore + biliscore + mapscore + gcsscore + crscore
           )
 
