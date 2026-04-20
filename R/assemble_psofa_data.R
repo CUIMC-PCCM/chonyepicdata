@@ -298,7 +298,7 @@ assemble_psofa_data <- function(labs,
           filter(enc_id %in% tw$enc_id) %>%
           mutate(across(c(fio2, spo2), as.numeric)) %>%
           filter(fio2 >= 21 & fio2 <= 100 | is.na(fio2)) %>%
-          filter(spo2 > 0   & spo2 <= 97  | is.na(spo2)) %>%
+          filter(spo2 > 0   & spo2 <= 100 | is.na(spo2)) %>%
           filter(!(is.na(fio2) & is.na(spo2))) %>%
           inner_join(tw, by = 'enc_id') %>%
           filter(recorded_time >= t_start & recorded_time <= t_end) %>%
