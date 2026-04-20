@@ -41,6 +41,10 @@ data/*
 # Testing files
 # tests/
 
+# R build artifacts
+*.tar.gz
+*.zip
+
 # Claude Code
 .claude/
 
