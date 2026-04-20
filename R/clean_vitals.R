@@ -36,11 +36,14 @@ clean_vitals <- function(df_vitals,
           r_fs_map_a_line <- r_fs_device_cvp_mean <- pulse_oximetry <-
           pulse <- respirations  <-  NULL
 
-     # Recode flowsheet_name values if a name_map is provided
-     if (!is.null(name_map)) {
-          df_vitals <- df_vitals %>%
-               mutate(flowsheet_name = dplyr::recode(flowsheet_name, !!!name_map))
-     }
+     # Built-in aliases for common Epic export name variations
+     builtin_aliases <- c(
+          'map (mmhg)'                 = 'r fs map',
+          'arterial line map (mmhg)'   = 'r fs map a-line'
+     )
+     alias_map <- if (!is.null(name_map)) c(builtin_aliases, name_map) else builtin_aliases
+     df_vitals <- df_vitals %>%
+          mutate(flowsheet_name = dplyr::recode(flowsheet_name, !!!alias_map))
 
      df_vitals_wide <- df_vitals %>%
           select(-any_of(c("common_name", "units", "cust_list_map_value"))) %>%

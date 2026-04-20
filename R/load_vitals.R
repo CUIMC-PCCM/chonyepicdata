@@ -61,7 +61,7 @@ load_vitals <- function(vitals_filepath,
 {
 
      # Required to avoid warnings when building package
-     enc_id <- NULL
+     enc_id <- display_name <- measure_value <- NULL
 
      # Load in all vitals
      suppressWarnings({
@@ -77,7 +77,13 @@ load_vitals <- function(vitals_filepath,
      rename_vec <- setNames(unlist(col_map), names(col_map))
      df_vitals <- df_vitals %>%
           rename(any_of(rename_vec)) %>%
-          mutate(across(any_of(c("enc_id", "mrn")), as.character))
+          mutate(across(any_of(c("enc_id", "mrn")), ~ trimws(as.character(.x))))
+
+     # Fallbacks for common Epic export column name variants
+     if (!'flowsheet_name' %in% names(df_vitals) && 'display_name'   %in% names(df_vitals))
+          df_vitals <- rename(df_vitals, flowsheet_name = display_name)
+     if (!'meas_value'     %in% names(df_vitals) && 'measure_value'  %in% names(df_vitals))
+          df_vitals <- rename(df_vitals, meas_value = measure_value)
 
      # If a particular vital sign was specified, then just filter to that one
      if(!is.na(vitals_to_load))

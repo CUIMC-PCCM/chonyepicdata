@@ -64,14 +64,14 @@ load_labs <- function(labs_filepath,
                                 n_max = max_load,
                                 delim = '|') %>%
                clean_names() %>%
-               mutate(across(where(is.character), str_to_lower))
+               mutate(across(where(is.character), ~ trimws(str_to_lower(.x))))
      })
 
      # Rename columns based on col_map, skipping any that don't exist in the file
      rename_vec <- setNames(unlist(col_map), names(col_map))
      df_labs <- df_labs %>%
           rename(any_of(rename_vec)) %>%
-          mutate(across(any_of("enc_id"), as.character)) %>%
+          mutate(across(any_of("enc_id"), ~ trimws(as.character(.x)))) %>%
           select(-any_of(drop_cols))
 
      return(df_labs)
