@@ -159,7 +159,7 @@ get_dept_intervals <- function(dept_names = NULL,
           summarize(
                dept_name       = first(current_dept[dept_start]),
                dept_start_date = min(adt_date[dept_start]),
-               dept_stop_date  = max(adt_date[dept_stop]),
+               dept_stop_date  = suppressWarnings(max(adt_date[dept_stop])),
                .groups = 'drop'
           ) %>%
           # When a patient transfers directly between two listed departments, the
