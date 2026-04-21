@@ -10,6 +10,8 @@
 #'
 #' @param dept_names A character vector of one or more department names to
 #'   track. Matching is case-insensitive. Example: \code{"MSCH 8 CENTRAL"}.
+#'   If \code{NULL} (the default), the function loads the ADT file, lists all
+#'   available departments, and prompts the user to select one interactively.
 #' @param adt_filepath Path to the ADT file.
 #' @param adt_coltypes A list of cols() specifications.
 #'   Cols specifications are things like col_integer(), col_character(), and
@@ -26,7 +28,7 @@
 #' }
 #'
 #' @export
-get_dept_intervals <- function(dept_names,
+get_dept_intervals <- function(dept_names = NULL,
                                adt_filepath,
                                adt_coltypes = list(
                                     col_character(),        # mrn
@@ -63,9 +65,6 @@ get_dept_intervals <- function(dept_names,
 
      virtual_locations <- c('msch xray imaging')
 
-     # Normalise the user-supplied names to lowercase for comparison
-     dept_names_lc <- stringr::str_to_lower(dept_names)
-
      # *****************************************************************************
      # File loading ----------------------------------------------------------------
      # *****************************************************************************
@@ -89,6 +88,20 @@ get_dept_intervals <- function(dept_names,
      # the OR does not appear as a departure from the target department.
      df_adt <- df_adt %>%
           filter(!(department_name %in% c(or_locations, virtual_locations)))
+
+     # *****************************************************************************
+     # Department selection --------------------------------------------------------
+     # *****************************************************************************
+
+     # If dept_names was not supplied, prompt the user to pick one interactively.
+     if (is.null(dept_names)) {
+          dept_options <- sort(unique(df_adt$department_name))
+          choice <- menu(dept_options, title = "\nSelect a department (enter a number):")
+          if (choice == 0) stop("No department selected.")
+          dept_names_lc <- dept_options[choice]
+     } else {
+          dept_names_lc <- stringr::str_to_lower(dept_names)
+     }
 
      # *****************************************************************************
      # Interval detection ----------------------------------------------------------
