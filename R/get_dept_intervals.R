@@ -162,6 +162,18 @@ get_dept_intervals <- function(dept_names = NULL,
                dept_stop_date  = max(adt_date[dept_stop]),
                .groups = 'drop'
           ) %>%
+          # When a patient transfers directly between two listed departments, the
+          # transition row (dept_start=T AND dept_stop=T) is assigned to the next
+          # episode by cumsum(), leaving the previous episode with no stop rows and
+          # a dept_stop_date of -Inf. Fix by borrowing the next episode's start time.
+          group_by(mrn, enc_id) %>%
+          arrange(dept_start_date, .by_group = TRUE) %>%
+          mutate(dept_stop_date = if_else(
+               dept_stop_date < dept_start_date,
+               lead(dept_start_date),
+               dept_stop_date
+          )) %>%
+          ungroup() %>%
           arrange(mrn, enc_id, dept_start_date) %>%
           group_by(enc_id) %>%
           mutate(dept_interval = row_number()) %>%
