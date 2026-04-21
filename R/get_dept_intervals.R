@@ -25,6 +25,7 @@
 #'   \item \code{enc_id}: Encounter ID, renamed from PAT_ENC_CSN_ID
 #'   \item \code{dept_start_date}: Datetime when the patient entered the department
 #'   \item \code{dept_stop_date}: Datetime when the patient left the department
+#'   \item \code{dept_interval}: Sequential index of each stay within the encounter, in temporal order
 #' }
 #'
 #' @export
@@ -49,7 +50,7 @@ get_dept_intervals <- function(dept_names = NULL,
      pat_enc_csn_id <- effective_time <- adt_date <- event_id <-
      department_name <- mrn <- enc_id <- event_type <-
      last_row <- in_dept <- last_in_dept <- last_in_dept_pre <-
-     dept_start <- dept_stop <- dept_episode <- NULL
+     dept_start <- dept_stop <- dept_episode <- dept_interval <- NULL
 
      # *****************************************************************************
      # Definitions -----------------------------------------------------------------
@@ -148,6 +149,10 @@ get_dept_intervals <- function(dept_names = NULL,
                dept_stop_date  = max(adt_date[dept_stop]),
                .groups = 'drop'
           ) %>%
+          arrange(mrn, enc_id, dept_start_date) %>%
+          group_by(enc_id) %>%
+          mutate(dept_interval = row_number()) %>%
+          ungroup() %>%
           select(-dept_episode)
 
      return(result)
