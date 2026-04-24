@@ -1,5 +1,6 @@
 library(readr)
 library(dplyr)
+library(anonymizer)
 
 # ── Helper: prompt user with a question, return trimmed response ───────────────
 ask <- function(prompt) trimws(readline(prompt))
@@ -75,7 +76,7 @@ cat(sprintf("Loaded %d rows, %d columns.\n", nrow(df), ncol(df)))
 # 3. Columns to de-identify (replace with sequential integers)
 # ═══════════════════════════════════════════════════════════════════════════════
 cat("\n── Step 3: ID columns to de-identify ────────────────────────────────────\n")
-cat("Enter the column names to replace with sequential integers (comma-separated).\n")
+cat("Enter the column names to hash with anonymizer (comma-separated).\n")
 cat("These are typically patient or encounter identifiers (e.g. MRN, PAT_ENC_CSN_ID).\n")
 cat("Press Enter to skip.\n")
 id_cols <- ask_cols("ID columns: ", all_cols)
@@ -229,12 +230,10 @@ if (length(time_cols) > 0 && !is.null(patient_col)) {
      }
 }
 
-# Replace ID columns with sequential integers
+# Hash ID columns with anonymizer (SHA-256, fixed seed for reproducibility)
 for (col in id_cols) {
-     mapping <- tibble(orig = unique(df[[col]])) %>%
-          mutate(new_val = as.character(row_number()))
-     df[[col]] <- mapping$new_val[match(df[[col]], mapping$orig)]
-     cat(sprintf("  Replaced '%s' with sequential integers.\n", col))
+     df[[col]] <- anonymize(df[[col]], .algo = 'sha256', .seed = 42)
+     cat(sprintf("  Hashed '%s' with SHA-256.\n", col))
 }
 
 # Drop columns
