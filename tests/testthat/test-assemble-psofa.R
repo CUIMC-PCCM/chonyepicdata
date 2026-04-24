@@ -186,13 +186,13 @@ test_that("dob correctly computes agem from window start", {
 
 # ── Output structure ──────────────────────────────────────────────────────────
 
-test_that("returns expected columns", {
+test_that("returns expected columns including t_start", {
      result <- assemble_psofa_data(
           labs = make_labs(), vitals = make_vitals(), meds = make_meds(),
           fio2_spo2 = make_fio2_spo2(), resp_episodes = make_resp_episodes(),
           time_window = make_time_window_abs(), agem = make_agem()
      )
-     expected_cols <- c("enc_id", "agem", "creatinine", "platelets", "tbili",
+     expected_cols <- c("enc_id", "t_start", "agem", "creatinine", "platelets", "tbili",
                         "pf_ratio", "sf_ratio", "map", "resp_support")
      expect_true(all(expected_cols %in% names(result)))
      expect_equal(nrow(result), 2L)
@@ -284,4 +284,64 @@ test_that("resp_support TRUE for E001 (IMV), FALSE for E002 (room air)", {
      )
      expect_true(result$resp_support[result$enc_id == "E001"])
      expect_false(result$resp_support[result$enc_id == "E002"])
+})
+
+# ── Multi-episode (same enc_id, different t_start) ────────────────────────────
+
+test_that("two episodes for same enc_id produce two rows with per-episode values", {
+     t_ep1 <- ymd_hms("2024-03-01 06:00:00")
+     t_ep2 <- ymd_hms("2024-03-05 06:00:00")
+
+     tw_multi <- tibble(
+          enc_id  = c("E003", "E003"),
+          t_start = c(t_ep1,              t_ep2),
+          t_end   = c(t_ep1 + hours(24),  t_ep2 + hours(24))
+     )
+
+     labs_multi <- bind_rows(
+          tibble(enc_id = "E003", specimen_taken_time = t_ep1 + hours(4),
+                 common_name = "creatinine", result_value = "2.0"),
+          tibble(enc_id = "E003", specimen_taken_time = t_ep2 + hours(4),
+                 common_name = "creatinine", result_value = "0.5")
+     )
+
+     vitals_multi <- tibble(
+          enc_id = "E003", mrn = "M003",
+          vital_time = c(t_ep1 + hours(2), t_ep2 + hours(2)),
+          hr = 90, sbp_ni = 90, dbp_ni = 55, map_ni = 67,
+          sbp_art = NA, dbp_art = NA, map_art = NA, resp = 18, spo2 = 97, cvp = NA
+     )
+
+     meds_empty <- make_meds()[0, ]
+
+     fio2_empty <- tibble(enc_id = character(), recorded_time = lubridate::POSIXct(),
+                          fio2 = numeric(), spo2 = numeric())
+
+     resp_multi <- tibble(
+          enc_id = "E003", support_episode = 1L, current_support = "room_air",
+          support_time_start = t_ep1 - hours(1),
+          support_time_stop  = t_ep2 + hours(48),
+          timediff = as.duration(hours(200))
+     )
+
+     agem_multi <- tibble(enc_id = "E003", agem = 60)
+
+     result <- assemble_psofa_data(
+          labs          = labs_multi,
+          vitals        = vitals_multi,
+          meds          = meds_empty,
+          fio2_spo2     = fio2_empty,
+          resp_episodes = resp_multi,
+          time_window   = tw_multi,
+          agem          = agem_multi
+     )
+
+     expect_equal(nrow(result), 2L)
+     expect_true("t_start" %in% names(result))
+
+     ep1 <- result[result$t_start == t_ep1, ]
+     ep2 <- result[result$t_start == t_ep2, ]
+
+     expect_equal(ep1$creatinine, 2.0)
+     expect_equal(ep2$creatinine, 0.5)
 })
