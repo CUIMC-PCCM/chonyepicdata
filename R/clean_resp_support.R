@@ -71,6 +71,7 @@ clean_resp_support <- function(df_resp,
                            names_from = resp_meas_name,
                            values_from = measure_value,
                            values_fn = first) %>%
+               mutate(resp_meas_time = as_datetime(resp_meas_time)) %>%
                # For some reason there are two cpap variables that almost always agree,
                # but occasionally don't. Keep the more frequently populated one, and if it doesn't have a value,
                # replace it with the other one.

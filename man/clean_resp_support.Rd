@@ -4,10 +4,18 @@
 \alias{clean_resp_support}
 \title{clean_resp_support}
 \usage{
-clean_resp_support(df_resp)
+clean_resp_support(df_resp, var_col = "flowsheet_measure_id", var_map = NULL)
 }
 \arguments{
 \item{df_resp}{A long-form data frame of respiratory settings and measurements}
+
+\item{var_col}{Name of the column in \code{df_resp} that identifies each measurement.
+Default: \code{'flowsheet_measure_id'} (new Epic format, post-7/18/2024). Use
+\code{'flowsheet_measure_name'} for older data.}
+
+\item{var_map}{Named character vector mapping values in \code{var_col} to standardized
+output column names. When \code{NULL} (default), the built-in mapping for
+\code{flowsheet_measure_id} values is used.}
 }
 \value{
 A data frame in wide format with concurrently-recorded respiratory data

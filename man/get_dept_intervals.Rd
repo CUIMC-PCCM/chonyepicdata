@@ -32,9 +32,10 @@ A data frame with one row per discrete stay interval:
 \itemize{
 \item \code{mrn}: Medical record number
 \item \code{enc_id}: Encounter ID, renamed from PAT_ENC_CSN_ID
+\item \code{dept_name}: Name of the department for this interval
+\item \code{dept_interval}: Sequential index of each stay within the encounter, in temporal order
 \item \code{dept_start_date}: Datetime when the patient entered the department
 \item \code{dept_stop_date}: Datetime when the patient left the department
-\item \code{dept_interval}: Sequential index of each stay within the encounter, in temporal order
 }
 }
 \description{

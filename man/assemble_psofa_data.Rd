@@ -90,8 +90,8 @@ Default \code{'FiO2 (\%)'}.}
 Default \code{'SpO2'}.}
 }
 \value{
-A wide-format data frame with one row per encounter and columns:
-\code{enc_id}, \code{agem}, \code{platelets}, \code{tbili},
+A wide-format data frame with one row per encounter-episode and columns:
+\code{enc_id}, \code{t_start}, \code{agem}, \code{platelets}, \code{tbili},
 \code{creatinine}, \code{pf_ratio}, \code{sf_ratio}, \code{map},
 \code{epi}, \code{norepi}, \code{dopa}, \code{dobut},
 \code{resp_support}.
