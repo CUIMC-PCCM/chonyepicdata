@@ -19,8 +19,9 @@ Suggests:
     yaml
 Config/testthat/edition: 3
 RoxygenNote: 7.3.3
-Imports: 
+Imports:
     cli,
+    digest,
     dplyr,
     forcats,
     glue,
