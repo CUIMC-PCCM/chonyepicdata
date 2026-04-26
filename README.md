@@ -56,6 +56,7 @@ Whenever possible data should be pulled using these nomenclatures and formats.
 |------|---------|--------|
 | 2026-01-05 | Initial version created | Andy Geneslaw |
 | 2026-01-14 | Added medications       | Andy Geneslaw |
+| 2026-04-26 | Added `classify_meds()` and `calc_vis()` for vasoactive episode classification and Vasoactive-Inotropic Score trajectories | Andy Geneslaw |
 
 ---
 
