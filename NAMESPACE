@@ -2,6 +2,8 @@
 
 export(assemble_psofa_data)
 export(calc_psofa)
+export(calc_vis)
+export(classify_meds)
 export(classify_resp_support)
 export(clean_meds)
 export(clean_resp_support)
