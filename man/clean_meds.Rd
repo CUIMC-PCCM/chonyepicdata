@@ -33,7 +33,9 @@ doses, concentrations, and rates.}
 
 \item{medlist}{An array of characters that will be matched to determine
 medication names to keep. Partial matches can be used according to \link{stringr} rules.
-Pass \code{NA} if you you don't want to filter at all.}
+Pass \code{NA} if you you don't want to filter at all. Only the benzodiazepines
+and opioids named in the default value are converted to midazolam/morphine
+equivalents; other medications are passed through in their raw units.}
 
 \item{mar_med_given}{An array of characters that specify whether a medication
 was actually given to the patient. Default values are provided. Rows that
@@ -62,11 +64,25 @@ in the column 'med_name'. These should be cleaned and processed. If time limits 
 \code{time_limits}, then this will be sorted by individual PICU stay. Returns weight-based doses if
 weights were included in the function call. If not, it will include weight-based versus raw doses
 (in mg, grams, units, etc) based upon the order. These can be converted to weight-based post-hoc.
-The total duration of infusions in hours is returned as cumul_time variables.
+The total duration of infusions in hours is returned as cumul_time variables. Benzodiazepines and
+opioids given via IV or enteral routes are converted to IV midazolam and IV morphine equivalents,
+respectively, before summation; see Details above for scope.
 }
 \description{
 Clean and process raw medication data loaded from Epic EHR. The majority of
 this work is string matching and removal to extract meaningful medication
 names, doses, and concentrations. Doses are not weight-based unless recorded
 as such.
+}
+\details{
+All benzodiazepines in the default \code{medlist} (midazolam, lorazepam,
+diazepam, clonazepam, alprazolam) are converted to IV midazolam equivalents,
+and all opioids in the default \code{medlist} (morphine, fentanyl,
+hydromorphone, oxycodone) are converted to IV morphine equivalents. This
+conversion is only defined for the \code{iv} and \code{enteral} routes
+(see \code{iv_med_string}/\code{enteral_med_string} internally); IM,
+subcutaneous, and intranasal administration are out of scope for this
+project and are not converted. Opioids other than morphine, fentanyl,
+hydromorphone, and oxycodone are essentially never used in pediatrics and
+are not included in the default \code{medlist} or conversion logic.
 }
