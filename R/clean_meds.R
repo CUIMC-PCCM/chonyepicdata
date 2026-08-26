@@ -235,12 +235,18 @@ clean_meds <- function(df_meds,
                time_limits <- time_limits %>%
                     group_by(enc_id) %>%
                     mutate(picu_stay_num = row_number()) %>%
-                    ungroup()
+                    ungroup() %>%
+                    mutate(.t_start = lubridate::int_start(!!intcolname), .t_end = lubridate::int_end(!!intcolname))
 
-               df_meds <- df_meds %>%
-                    inner_join(time_limits, multiple = 'all', by = 'enc_id', relationship = 'many-to-many') %>%
-                    filter(med_time %within% !!intcolname) %>%
-                    select(-!!intcolname) %>%
+               # Range join: the time condition is expressed in the join itself
+               # (via join_by()/between()) rather than as a post-hoc filter, so
+               # the join engine avoids materializing the full enc_id x window
+               # cross product for encounters with many time windows.
+               df_meds <- inner_join(
+                    df_meds, time_limits,
+                    by = join_by(enc_id, between(med_time, .t_start, .t_end))
+               ) %>%
+                    select(-!!intcolname, -.t_start, -.t_end) %>%
                     tidyr::unite(col = 'enc_id', sep = '#', enc_id, picu_stay_num)
           },
           error = function(e) stop("Time filtering failed: ", e$message),
